@@ -1,0 +1,41 @@
+{
+  "_readme": "晚昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。发布形态是开源 Release + 百度网盘：html_url 指 Release 页，download_url 指网盘直链，download_code 是提取码。当前 version 与客户端 __version__ 一致。",
+  "version": "1.00",
+  "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
+  "download_url": "https://pan.baidu.com/s/1Kj4OWjy3q2MzCbTPYcOchA?pwd=r8yg",
+  "download_code": "r8yg",
+  "notes": "v1.00 首发：三只桌宠独立进程，双击 exe 同时出现；含碰撞、AI 对话、自动更新通知。便携版无需安装，解压即用。",
+  "assets": {
+    "wanzhou-1.00-portable.zip": {
+      "fileName": "wanzhou-1.00-portable.zip",
+      "urls": [
+        "https://pan.baidu.com/s/1Kj4OWjy3q2MzCbTPYcOchA?pwd=r8yg"
+      ],
+      "size": 405254568,
+      "sha256": "3d3c3297cd5fbab85fcd01e072a1f0c614aef83b382d3f6b80b4d0f3184ce721",
+      "platform": "windows",
+      "kind": "portable"
+    }
+  },
+  "_asset_example": {
+    "wanzhou-1.01-portable.zip": {
+      "fileName": "wanzhou-1.01-portable.zip",
+      "urls": [
+        "https://pan.baidu.com/s/xxxxxxx"
+      ],
+      "size": 123456789,
+      "sha256": "由 scripts/make_update_manifest.py --archive 自动算",
+      "platform": "windows",
+      "kind": "portable"
+    }
+  },
+  "_publish_steps": [
+    "1. 改版本号：pet/__init__.py 的 __version__ 必须与本文件 version 一致（都不带 v）。",
+    "2. 装构建依赖（venv\\Scripts\\python.exe -m pip install -r scripts/requirements-build.txt），跑 powershell -ExecutionPolicy Bypass -File scripts/build_onedir.ps1，产出 dist/wanzhou-1.01-portable.zip；里面是 wanzhou-pet\\ 目录，双击 wanzhou-pet.exe 会拉起 slot 1/2/3 三个进程，三只桌宠一起出现。",
+    "3. 把 dist/wanzhou-1.01-portable.zip 上传到百度网盘，拿到分享链接与提取码；再跑 python scripts/make_update_manifest.py --version 1.01 --notes '本次更新说明' --download-url 'https://pan.baidu.com/s/xxxxxxx' --download-code abcd --archive dist/wanzhou-1.01-portable.zip 写回清单。",
+    "4. 把代码推到 main，并在 GitHub 建 Release：tag 用 v 加版本号（如 v1.01），Release 说明里也贴上网盘链接与提取码；GitHub 会自动附上源码 zip/tar.gz。",
+    "5. 把本文件提交到 main 分支根目录；jsDelivr 首次同步可能要几分钟。老用户每 12 小时（启动后 10 秒 + 运行中定时）读一次本文件，发现新版本会弹可点击通知，点开就是更新窗，显示网盘链接与提取码。",
+    "6. 自检：download_url 必须是 https；download_code 只填提取码本身（如 abcd）；assets 里是便携 zip（kind=portable）而不是 Inno Setup 安装包，所以客户端的『下载并安装』按钮会保持禁用，只提供『打开下载页』。",
+    "7. 网盘链接是给浏览器打开的，不经过更新器的下载校验白名单；只有自动安装才需要 size / sha256 + 可信域名。"
+  ]
+}

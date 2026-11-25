@@ -1,0 +1,3 @@
+# 只用于出 exe，不进运行时 requirements.txt
+PyInstaller>=6.11
+pyinstaller-hooks-contrib>=2025.1

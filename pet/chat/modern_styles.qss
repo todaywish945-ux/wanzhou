@@ -1,0 +1,176 @@
+/* ===== 绝区零「敲敲」主题（移植自叶瞬光桌宠，2026-11-23）=====
+   她=浅灰气泡 #e5e7eb，我=蓝气泡 #1c55e3，炭黑底 ZONE ZERO 暗纹，
+   敲敲黄 #ffd613 强调。@KK_ASSETS@ 由 widgets._style() 替换为素材绝对路径。 */
+QDialog#chat-window {
+    background: transparent; color: #e5e7eb; font-size: 13px;
+    font-family: "inpin hongmengti", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+/* 敲敲平板外壳：大圆角 + 内缩边距（给暗纹底留边，像一台平板） */
+QDialog#chat-window { padding: 0; }
+QFrame#phone-shell { background: #151518; border: 1px solid #2f2f34; border-radius: 22px; }
+QFrame#deepseek-sidebar {
+    background: rgba(0, 0, 0, 0.55); border: none;
+    border-top-left-radius: 21px; border-bottom-left-radius: 21px;
+    margin: 8px 0 8px 8px;
+}
+QFrame#deepseek-sidebar[overlayDrawer="true"] {
+    background: rgba(0, 0, 0, 0.88);
+    border: 1px solid #3a3a40; border-left: none;
+    border-top-right-radius: 22px; border-bottom-right-radius: 22px;
+    margin: 0;
+}
+QFrame#sidebar-scrim { background: rgba(0, 0, 0, 140); border: none; }
+QLabel#avatar-label { background: transparent; border: none; color: #ffd613; font-size: 12px; font-weight: 700; }
+QLabel#brand-label { color: #ffd613; font-size: 17px; font-weight: 700; }
+QPushButton#new-conversation-button {
+    min-height: 32px; max-height: 34px; border: 1px solid #3a3a40; border-radius: 17px;
+    background: #26262b; color: #e5e7eb; font-size: 13px; font-weight: 600;
+}
+QPushButton#new-conversation-button:hover { background: #323238; border-color: #ffd613; color: #ffd613; }
+QLabel#session-section-title { color: #8a8a92; font-size: 11px; padding: 8px 7px 1px 7px; }
+QToolButton#session-multi-select-button {
+    width: 25px; height: 25px; border: none; border-radius: 7px; background: transparent;
+}
+QToolButton#session-multi-select-button:hover { background: #2e2e34; }
+QListWidget#session-list { background: transparent; color: #d1d5db; border: none; outline: none; padding: 0; }
+QListWidget#session-list::item { min-height: 30px; border: none; border-radius: 9px; }
+QListWidget#session-list::item:disabled { color: #6b7280; background: transparent; font-size: 11px; padding-left: 8px; }
+QListWidget#session-list::item:hover { background: #2a2a30; }
+QListWidget#session-list::item:selected { background: #3a3520; color: #ffd613; }
+QFrame#session-row { background: transparent; border: none; }
+QLabel#session-row-title { color: #d1d5db; background: transparent; }
+QToolButton#session-select-button {
+    color: transparent; border: 2px solid #4b5563; border-radius: 10px; background: transparent;
+    font-size: 12px; font-weight: 700;
+}
+QToolButton#session-select-button:checked { color: #151518; border-color: #ffd613; background: #ffd613; }
+QToolButton#session-more-button { width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; }
+QToolButton#session-more-button:hover { background: #2e2e34; }
+QFrame#session-batch-action-bar { background: transparent; border-top: 1px solid #2f2f35; }
+QFrame#session-batch-action-bar QPushButton {
+    min-height: 32px; padding: 0 12px; border: none; border-radius: 8px;
+    background: transparent; color: #d1d5db; font-weight: 600;
+}
+QFrame#session-batch-action-bar QPushButton:hover { background: #2e2e34; }
+QFrame#session-batch-action-bar QPushButton#batch-delete-button { color: #f87171; }
+QFrame#session-batch-action-bar QPushButton:disabled { color: #6b7280; }
+QFrame#sidebar-footer { background: transparent; border: none; }
+QFrame#header-status { background: transparent; border: none; }
+QLabel#status-dot { color: #4ade80; font-size: 9px; }
+QLabel#status-dot[state="busy"] { color: #fbbf24; }
+QLabel#status-label { color: #9ca3af; font-size: 10px; font-weight: 600; }
+QLabel#provider-label { color: #6b7280; font-size: 10px; }
+QToolButton#follow-pet-button, QToolButton#delete-session-button, QToolButton#clear-session-button {
+    min-height: 30px; padding: 0 9px; border: none; border-radius: 8px;
+    background: transparent; color: #9ca3af; font-size: 11px; font-weight: 500;
+}
+QToolButton#follow-pet-button:hover, QToolButton#delete-session-button:hover,
+QToolButton#clear-session-button:hover { background: #2e2e34; }
+QToolButton#follow-pet-button:checked { color: #151518; background: #ffd613; }
+QFrame#chat-main { background: #151518; border: none; border-top-right-radius: 21px; border-bottom-right-radius: 21px; }
+/* 敲敲黑胶囊头条：内缩 8px 悬浮在暗纹底上，圆角 999px */
+QFrame#chat-main-header {
+    min-height: 46px; max-height: 52px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #2f2f34;
+    border-radius: 23px;
+    margin: 8px 10px 4px 10px;
+}
+QLabel#title-label { color: #ffd613; font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+QLabel#subtitle-label { color: #9ca3af; font-size: 10px; }
+QToolButton#sidebar-toggle-button, QToolButton#window-minimize-button, QToolButton#window-close-button,
+QToolButton#window-pin-button {
+    width: 29px; height: 29px; border: none; border-radius: 8px; background: transparent;
+    color: #e5e7eb;
+}
+QToolButton#sidebar-toggle-button:hover { background: #2e2e34; }
+QToolButton#window-minimize-button:hover { background: #2e2e34; }
+QToolButton#window-close-button:hover { background: #7f1d1d; }
+QToolButton#window-pin-button:hover { background: #2e2e34; }
+QToolButton#window-pin-button:checked { color: #151518; background: #ffd613; }
+/* 消息区：炭黑底 + 游戏同款 ZONE ZERO 暗纹（素材路径由 _style() 注入） */
+QScrollArea#message-scroll, QScrollArea#message-scroll QWidget#qt_scrollarea_viewport,
+QWidget#message-view, QWidget#message-timeline {
+    background-color: #151518;
+    background-image: url(@KK_ASSETS@/bg-pattern.png);
+    background-repeat: repeat;
+    border: none;
+}
+QScrollArea#message-scroll { margin: 0 10px; }
+QWidget#message-timeline { padding: 8px 4px; }
+QLabel#empty-state { color: #6b7280; font-size: 14px; }
+QFrame#message-bubble { padding: 0; border: none; background: transparent; }
+QFrame#message-surface { padding: 0; border: none; background: transparent; }
+/* 敲敲气泡：她=浅灰 #e5e7eb 深字，我=蓝 #1c55e3 白字 */
+QFrame#message-surface[role="assistant"] {
+    padding: 7px 11px; border-radius: 14px; background: #e5e7eb;
+}
+QFrame#message-surface[role="user"] {
+    padding: 7px 11px; border-radius: 14px; background: #1c55e3;
+}
+QFrame#message-bubble[state="streaming"] { background: transparent; }
+QFrame#message-bubble[state="error"] { background: transparent; }
+QFrame#message-bubble[state="stopped"] { background: transparent; }
+QFrame#message-surface[state="error"] {
+    padding: 7px 11px; border: 1px solid #b91c1c; border-radius: 14px; background: #fff3f1;
+}
+QFrame#message-surface[state="error"] QLabel#bubble-body { color: #b91c1c; font-weight: 600; }
+QLabel#bubble-avatar, QLabel#bubble-meta { background: transparent; border: none; }
+QLabel#bubble-body { font-size: 12.5px; line-height: 1.55; }
+QLabel#bubble-body[role="assistant"] { color: #1f2937; }
+QLabel#bubble-body[role="user"] { color: #ffffff; }
+QLabel#bubble-status { color: #fbbf24; font-size: 10px; }
+QFrame#error-actions { background: transparent; border: none; }
+QFrame#message-tools { background: transparent; border: none; }
+QFrame#message-tools QToolButton { width: 25px; height: 25px; border: none; border-radius: 6px; background: transparent; color: #9ca3af; }
+QFrame#message-tools QToolButton:hover { background: #2e2e34; }
+QPushButton#retry-button {
+    min-height: 25px; padding: 0 10px; border: 1px solid #e2b9b4; border-radius: 7px;
+    background: #ffffff; color: #8b342e; font-size: 10px; font-weight: 600;
+}
+QPushButton#retry-button:hover { background: #fff8f7; border-color: #d79d96; }
+QFrame#floating-composer { background: transparent; border: none; }
+/* 敲敲输入区：白圆角卡 + 蓝发送钮（Qt 对超高 border-radius 渲染不稳，用 18px） */
+QFrame#chat-composer { background: #ffffff; border: 1px solid #d1d5db; border-radius: 18px; }
+QFrame#attachment-strip { background: transparent; border: none; }
+QFrame#attachment-chip {
+    min-height: 42px; max-height: 44px; border: 1px solid #3a3a40;
+    border-radius: 10px; background: #26262b;
+}
+QFrame#attachment-chip:hover { background: #323238; border-color: #ffd613; }
+QLabel#attachment-preview { background: #ffffff; border: 1px solid #3a3a40; border-radius: 7px; }
+QLabel#attachment-name { color: #e5e7eb; font-size: 10px; font-weight: 600; background: transparent; }
+QLabel#attachment-meta { color: #9ca3af; font-size: 8px; background: transparent; }
+QToolButton#attachment-remove-button {
+    width: 20px; height: 20px; border: none; border-radius: 10px; background: #4b5563;
+    color: #ffffff;
+}
+QToolButton#attachment-remove-button:hover { background: #dc2626; }
+QPlainTextEdit#chat-input {
+    min-height: 36px; max-height: 68px; padding: 2px 2px; color: #1f2937; background: transparent;
+    border: none; selection-background-color: #1c55e3;
+}
+QPlainTextEdit#chat-input:focus { border: none; }
+QFrame#composer-toolbar { background: transparent; border: none; }
+QLabel#composer-hint { color: #9ca3af; font-size: 9px; }
+QToolButton#composer-attach-button {
+    width: 29px; height: 29px; border: none; border-radius: 14px; background: transparent;
+    color: #4b5563;
+}
+QToolButton#composer-attach-button:hover { background: #f0f2f5; }
+QToolButton#send-button {
+    width: 34px; height: 34px; border: none; border-radius: 17px;
+    color: #ffffff; background: #1c55e3;
+}
+QToolButton#send-button:hover { background: #3b6ef0; }
+QToolButton#send-button:disabled { background: #93b0ee; }
+QToolButton#send-button[busy="true"] { background: #ffd613; color: #151518; }
+QScrollBar:vertical { width: 7px; margin: 3px 1px; background: transparent; }
+QScrollBar::handle:vertical { min-height: 28px; border-radius: 3px; background: #4b5563; }
+QScrollBar::handle:vertical:hover { background: #ffd613; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QPushButton#load-earlier-button {
+    background: rgba(0,0,0,0.55); border: 1px solid #3a3a40; border-radius: 12px; color: #9ca3af;
+    font-size: 12px; padding: 4px 12px;
+}
+QPushButton#load-earlier-button:hover { color: #ffd613; border-color: #ffd613; }

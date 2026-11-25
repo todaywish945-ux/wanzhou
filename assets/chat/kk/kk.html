@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>敲敲</title>
+<link rel="stylesheet" href="original.css" />
+<style>
+  /* 原版 CSS 固定 628x484；这里让内容撑满 WebEngine 视口，保持逐像素的视觉参数 */
+  html, body { width: 100%; height: 100%; }
+  /* 消息容器 #session-preview 的布局/滚动/气泡样式全部走 original.css（原版同款）：
+     flex column、从上往下排、不居中；不再另造 #msg-scroll，也没有第二输入框。 */
+  #new-session-btn { cursor:pointer; }
+  .kk-hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div id="tablet">
+  <div id="screen">
+    <div id="home-view" class="view">
+      <div id="kk-header">
+        <img class="kk-logo" src="knock-knock.svg" alt="" draggable="false" />
+        <span>Knock Knock</span>
+      </div>
+      <div id="kk-body">
+        <aside id="home-side">
+          <div id="kk-tabs">
+            <button id="tab-video" class="tab" type="button" title="邀约">
+              <img src="tab-invite.png" alt="" draggable="false" />
+            </button>
+            <button id="tab-chat" class="tab on" type="button" title="私信">
+              <img src="tab-dm.png" alt="" draggable="false" />
+            </button>
+            <button id="tab-group" class="tab" type="button" title="群聊">
+              <img src="tab-group.png" alt="" draggable="false" />
+            </button>
+          </div>
+
+          <div id="side-video" class="hidden">
+            <div class="side-label">联系人</div>
+            <div id="contact-cards"></div>
+            <div class="side-divider"><i></i><span>Info</span><i></i></div>
+            <div id="side-info">发起邀约后她会以视频通话的形式接通</div>
+          </div>
+
+          <div id="side-chat">
+            <div class="side-divider"><i></i><span>Choose</span><i></i></div>
+            <div class="side-label-row">
+              <span class="side-label">Messaging</span>
+              <button id="manage-sessions-btn" type="button">管理</button>
+            </div>
+            <div id="batch-bar" class="hidden">
+              <button id="batch-select-all" type="button">全选</button>
+              <button id="batch-delete" type="button" disabled>删除所选</button>
+              <button id="batch-cancel" type="button">完成</button>
+            </div>
+            <div id="session-list"></div>
+          </div>
+
+          <div id="side-group" class="hidden">
+            <div class="side-label">群聊</div>
+            <div class="group-slot"><span class="no-x">⊗</span><div class="no-meta"><div class="no-t">NoData</div><div class="no-s">Empty</div></div></div>
+            <div class="group-slot"><span class="no-x">⊗</span><div class="no-meta"><div class="no-t">NoData</div><div class="no-s">Empty</div></div></div>
+            <div class="group-slot"><span class="no-x">⊗</span><div class="no-meta"><div class="no-t">NoData</div><div class="no-s">Empty</div></div></div>
+          </div>
+        </aside>
+
+        <div id="home-main">
+          <div id="session-view">
+            <div id="session-head">
+              <img id="session-char-avatar" class="head-avatar" src="tab-dm.png" alt="" draggable="false" />
+              <span id="session-char-name" class="head-char"></span>
+              <span id="session-title"></span>
+              <span id="session-when"></span>
+            </div>
+            <!-- 聊天消息容器：原版 #session-preview（消息 h-row 直接进这里，
+                 不再另造 #msg-scroll，也不放话题空态的第二输入框） -->
+            <div id="session-preview"></div>
+
+            <form id="home-inputbar">
+              <input id="home-chat-input" type="text" placeholder="Type a message…" autocomplete="off" maxlength="2000" />
+              <button id="home-send-btn" type="submit" title="发送">➤</button>
+            </form>
+          </div>
+
+          <div id="invite-view" class="hidden">
+            <div id="invite-card" class="hidden">
+              <div class="invite-band"></div>
+              <img id="invite-avatar" src="tab-dm.png" alt="" draggable="false" />
+              <div id="invite-nameplate"><span id="invite-name">挽昼</span><span class="face-icon">☺</span></div>
+              <div id="invite-impression">
+                <div class="imp-title" id="imp-title">对她的印象：</div>
+                <div class="imp-text" id="imp-text">聊得多了，这里就会写下对你的印象</div>
+              </div>
+              <div id="invite-topic">
+                <div class="it-label">今天想聊点什么？</div>
+                <div id="topic-chips2">
+                  <button class="chip" type="button">随便聊聊</button>
+                  <button class="chip" type="button">最近有点焦虑</button>
+                  <button class="chip" type="button">今天发生的事</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="group-view" class="hidden">
+            <div id="group-head"><span>群聊</span></div>
+            <div id="group-empty">群聊功能筹备中——以后可以拉多个角色进同一间屋子</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="win-controls">
+      <button id="win-min" type="button" title="最小化"><svg viewBox="0 0 12 12"><path d="M1 6h10" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button>
+      <button id="win-close" type="button" title="关闭" class="close"><svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></button>
+    </div>
+  </div>
+  <div id="grip-top" data-drag="1"></div>
+  <div id="grip-left" data-drag="1"></div>
+  <div id="grip-right" data-drag="1"></div>
+  <div id="grip-bottom" data-drag="1"></div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+'use strict';
+var bridge = null;
+var currentChat = null;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+// ---- 会话列表：按角色分组，会话行挂在组下（原版 char-group-head / session-item 同款 class）
+// 批量管理状态（原版同款：管理 → 多选 → 删除所选）
+var batchMode = false;
+var selectedSessions = new Set();
+var manageBtn = document.getElementById("manage-sessions-btn");
+var batchBar = document.getElementById("batch-bar");
+var batchDeleteBtn = document.getElementById("batch-delete");
+var batchSelectAllBtn = document.getElementById("batch-select-all");
+var batchCancelBtn = document.getElementById("batch-cancel");
+
+function updateBatchBar() {
+  var total = document.querySelectorAll("#session-list .session-item").length;
+  // armed（等待二次确认）时保留「再点确认删除」文字，不覆盖
+  if (!deleteArmed) batchDeleteBtn.textContent = "删除所选(" + selectedSessions.size + ")";
+  batchDeleteBtn.disabled = selectedSessions.size === 0;
+  batchSelectAllBtn.textContent = (total > 0 && selectedSessions.size === total) ? "全不选" : "全选";
+}
+function setBatchMode(on) {
+  batchMode = on;
+  selectedSessions.clear();
+  resetDeleteArm();  // 切换模式时取消待确认状态
+  manageBtn.classList.toggle("hidden", on);
+  batchBar.classList.toggle("hidden", !on);
+  document.getElementById("session-list").classList.toggle("batch", on);
+  renderSessions(lastGroups);
+  updateBatchBar();
+}
+
+function renderSessions(groups) {
+  lastGroups = groups || [];
+  var list = document.getElementById("session-list");
+  list.innerHTML = "";
+  lastGroups.forEach(function(g){
+    var head = document.createElement("div");
+    head.className = "char-group-head" + (g.active ? " active" : "");
+    head.innerHTML = "<img class=\"g-avatar\" src=\"" + (g.avatar || "tab-dm.png") + "\" alt=\"\" />" +
+                     "<span class=\"g-name\">" + esc(g.name) + "</span>";
+    var add = document.createElement("button");
+    add.className = "g-add"; add.type = "button";
+    add.title = "和" + g.name + "开个新会话"; add.textContent = "＋";
+    add.onclick = function(ev){ ev.stopPropagation(); if (bridge) bridge.newSession(g.cid); };
+    head.appendChild(add);
+    head.style.cursor = "pointer";
+    head.onclick = function(){ if (!batchMode && bridge) bridge.switchCharacter(g.cid); };
+    list.appendChild(head);
+    (g.sessions || []).forEach(function(s){
+      var item = document.createElement("div");
+      item.className = "session-item" + (s.selected ? " active" : "") +
+                       (batchMode && selectedSessions.has(s.sid) ? " batch-sel" : "");
+      item.setAttribute("data-sid", s.sid);
+      item.setAttribute("data-cid", g.cid);
+      var meta = document.createElement("div");
+      meta.className = "s-meta";
+      meta.innerHTML = "<span class=\"t\">" + esc(s.title) + "</span>" +
+                       "<span class=\"p\">" + esc(s.preview) + "</span>" +
+                       "<span class=\"time\">" + esc(s.time) + "</span>";
+      item.appendChild(meta);
+      if (!batchMode) {
+        item.appendChild(Object.assign(document.createElement("button"), {
+          className:"del", type:"button", textContent:"×", title:"删除会话"
+        }));
+      }
+      item.onclick = function(){
+        if (batchMode) {
+          if (selectedSessions.has(s.sid)) selectedSessions.delete(s.sid);
+          else selectedSessions.add(s.sid);
+          item.classList.toggle("batch-sel", selectedSessions.has(s.sid));
+          resetDeleteArm();
+          updateBatchBar();
+        } else if (bridge) bridge.openSession(g.cid, s.sid);
+      };
+      var del = item.querySelector(".del");
+      if (del) del.onclick = function(ev){
+        ev.stopPropagation();
+        if (bridge && bridge.deleteSessions(JSON.stringify([{cid:g.cid,sid:s.sid}]))) {
+          // 删除后由 sessionsChanged 回填刷新
+        }
+      };
+      list.appendChild(item);
+    });
+  });
+}
+var lastGroups = [];
+
+// ---- 消息渲染：原版 h-row / h-msg / avatar 同款 class（逐像素复用 CSS）
+// 消息直接进 #session-preview（原版容器）：flex column 从上往下排，不居中
+var preview = document.getElementById("session-preview");
+
+function scrollBottom(){ preview.scrollTop = preview.scrollHeight; }
+
+function addBubble(role, text, avatar, name, live) {
+  var row = document.createElement("div");
+  row.className = "h-row " + role + (live ? " live" : "");
+  if (role === "user") {
+    // 原版：DOM 顺序「头像在前、气泡在后」+ .h-row.user 的 row-reverse
+    // → 视觉上头像在最右、气泡在其左边（用户要的效果）
+    row.innerHTML = "<span class=\"avatar avatar-user\"><svg viewBox=\"0 0 24 24\"><path d=\"M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-8 1.7-8 5v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1c0-3.3-4.7-5-8-5z\"/></svg></span>" +
+                    "<div class=\"h-msg user\">" + esc(text) + "</div>";
+  } else {
+    row.innerHTML = "<img class=\"avatar\" src=\"" + (avatar || "tab-dm.png") + "\" alt=\"\" />" +
+                    "<div class=\"h-msg assistant\">" + (live ? "<span class=\"dots\"><i></i><i></i><i></i></span>" : esc(text)) + "</div>";
+  }
+  preview.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+// 原版"思考中"三点气泡：头像 + .dots
+function showThinking(avatar) { addBubble("assistant", "", avatar, "", true); }
+function removeThinking() {
+  var live = preview.querySelector(".h-row.live");
+  if (live) live.remove();
+}
+
+function setLastAssistantText(text, avatar) {
+  // 只改**本轮**那条 live 气泡：旧实现先删掉 live 泡再取"最后一条
+  // assistant 行"，首字到达时会把上一轮已经落库的回复覆盖掉——连发几句就
+  // 只剩一个对方气泡，像微信那样"每条回复各起一个泡"才对。
+  var live = preview.querySelector(".h-row.live");
+  if (!live) { addBubble("assistant", text, avatar); return; }
+  var msg = live.querySelector(".h-msg.assistant");
+  if (msg) msg.innerHTML = esc(text);
+  scrollBottom();
+}
+
+function finishThinking() {
+  // 流式结束：气泡留着（内容已是最终文本），只摘掉 live 标记。
+  var live = preview.querySelector(".h-row.live");
+  if (live) live.classList.remove("live");
+}
+
+function showChat(s) {
+  currentChat = s;
+  if (s.empty) { showEmpty(s.name, s.avatar); return; }
+  removeThinking();
+  preview.innerHTML = "";
+  document.getElementById("session-title").textContent = s.title || "";
+  document.getElementById("session-when").textContent = s.time || "";
+  document.getElementById("session-char-name").textContent = s.name || "";
+  if (s.avatar) document.getElementById("session-char-avatar").src = s.avatar;
+  var msgs = s.messages || [];
+  if (!msgs.length) {
+    var empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "说点什么吧，她会认真听——";
+    preview.appendChild(empty);
+  }
+  msgs.forEach(function(m){ addBubble(m.role, m.content, s.avatar, s.name); });
+  scrollBottom();
+}
+
+function showEmpty(name, avatar) {
+  currentChat = null;
+  removeThinking();
+  preview.innerHTML = "";
+  var empty = document.createElement("div");
+  empty.className = "empty";
+  empty.textContent = "想聊什么，直接写在下面就好——";
+  preview.appendChild(empty);
+  document.getElementById("session-char-name").textContent = name || "";
+  // 切到没会话的角色时也要换头像（否则残留上一个角色的）
+  if (avatar) document.getElementById("session-char-avatar").src = avatar;
+  document.getElementById("session-title").textContent = "";
+  document.getElementById("session-when").textContent = "";
+}
+
+function sendText() {
+  var input = document.getElementById("home-chat-input");
+  var text = (input.value || "").trim();
+  if (!text) return;
+  input.value = "";
+  // 用户气泡由 Python 统一 emit（一轮一框时它可能先新建会话再发气泡），
+  // JS 这里只管把文本交给后端，避免与新建会话的清空重渲染竞态。
+  if (bridge) bridge.sendMessage(text);
+}
+
+// ---- 事件绑定
+document.getElementById('home-send-btn').addEventListener('click', sendText);
+document.getElementById('home-chat-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); sendText(); }
+});
+document.getElementById('home-inputbar').addEventListener('submit', function(e){ e.preventDefault(); sendText(); });
+
+// 会话批量管理（原版同款）
+manageBtn.addEventListener('click', function(){ setBatchMode(true); });
+batchCancelBtn.addEventListener('click', function(){ setBatchMode(false); });
+batchSelectAllBtn.addEventListener('click', function(){
+  var items = Array.prototype.slice.call(document.querySelectorAll('#session-list .session-item'));
+  var all = items.length > 0 && items.every(function(el){ return el.dataset.sid && selectedSessions.has(el.dataset.sid); });
+  items.forEach(function(el){
+    var sid = el.dataset.sid;
+    if (!sid) return;
+    if (all) selectedSessions.delete(sid); else selectedSessions.add(sid);
+  });
+  renderSessions(lastGroups);
+  resetDeleteArm();
+  updateBatchBar();
+});
+// Qt WebEngine 默认不支持 window.confirm（直接返回 false），所以改成两段式确认：
+// 第一次点「删除所选(N)」→ 变「再点确认删除」，3 秒内再点才真删。
+var deleteArmed = false;
+var deleteArmTimer = null;
+function resetDeleteArm() {
+  deleteArmed = false;
+  if (deleteArmTimer) { clearTimeout(deleteArmTimer); deleteArmTimer = null; }
+  updateBatchBar();
+}
+batchDeleteBtn.addEventListener('click', function(){
+  if (selectedSessions.size === 0) return;
+  if (!deleteArmed) {
+    deleteArmed = true;
+    batchDeleteBtn.textContent = '再点确认删除';
+    deleteArmTimer = setTimeout(resetDeleteArm, 3000);
+    return;
+  }
+  if (deleteArmTimer) { clearTimeout(deleteArmTimer); deleteArmTimer = null; }
+  var items = [];
+  selectedSessions.forEach(function(sid){
+    var el = document.querySelector('#session-list .session-item[data-sid="' + sid + '"]');
+    items.push({cid: el ? el.dataset.cid : '', sid: sid});
+  });
+  if (bridge) bridge.deleteSessions(JSON.stringify(items));
+  deleteArmed = false;
+  setBatchMode(false);
+});
+
+document.getElementById('tab-chat').addEventListener('click', function(){ setTab('chat'); });
+document.getElementById('tab-video').addEventListener('click', function(){ setTab('video'); });
+document.getElementById('tab-group').addEventListener('click', function(){ setTab('group'); });
+function setTab(tab) {
+  ['chat','video','group'].forEach(function(t){
+    var el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('on', t === tab);
+  });
+  document.getElementById('side-chat').classList.toggle('hidden', tab !== 'chat');
+  document.getElementById('side-video').classList.toggle('hidden', tab !== 'video');
+  document.getElementById('side-group').classList.toggle('hidden', tab !== 'group');
+  var views = {chat:'session-view', video:'invite-view', group:'group-view'};
+  ['session-view','invite-view','group-view'].forEach(function(v){
+    document.getElementById(v).classList.toggle('hidden', v !== views[tab]);
+  });
+}
+
+// ---- 标题栏拖动（只认 #kk-header 本身，不碰下面的页签/侧栏）
+var dragHeader = document.getElementById('kk-header');
+if (dragHeader) {
+  dragHeader.style.cursor = 'move';
+  dragHeader.addEventListener('mousedown', function(e){
+    if (e.button !== 0 || !bridge) return;
+    bridge.dragStart();   // Python 用 QCursor.pos() 取真实鼠标位置，免 DPR 坐标错位
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(){
+    if (!bridge) return;
+    // dragStart 未调用时 Python 侧 _drag_offset 为 None，dragMove 是空操作
+    bridge.dragMove();
+  });
+  document.addEventListener('mouseup', function(){
+    if (bridge) bridge.dragEnd();
+    document.body.style.userSelect = '';
+  });
+}
+
+document.getElementById('win-min').addEventListener('click', function(){ if (bridge) bridge.minimize(); });
+document.getElementById('win-close').addEventListener('click', function(){ if (bridge) bridge.closeWindow(); });
+
+// ---- Qt 桥接
+new QWebChannel(qt.webChannelTransport, function(channel){
+  bridge = channel.objects.bridge;
+  // QWebChannel 的 @Slot(result=...) 在 JS 端返回 Promise，用 then 取结果
+  Promise.resolve(bridge.initialData()).then(function(raw){
+    var data = JSON.parse(raw);
+    renderSessions(data.groups || []);
+    if (data.chat) showChat(data.chat); else showEmpty();
+  }).catch(function(e){ console.error('initialData 失败', e); showEmpty(); });
+  bridge.sessionsChanged.connect(function(json){
+    var d = JSON.parse(json);
+    renderSessions(d.groups || []);
+  });
+  bridge.chatOpened.connect(function(json){ showChat(JSON.parse(json)); });
+  bridge.bubbleAppended.connect(function(json){
+    var d = JSON.parse(json);
+    addBubble(d.role, d.text, d.avatar, d.name);
+  });
+  // 原版思考中：头像 + 三点气泡
+  bridge.thinkingStarted.connect(function(){
+    var empty = preview.querySelector(".empty");
+    if (empty) empty.remove();
+    showThinking(document.getElementById('session-char-avatar').getAttribute('src'));
+  });
+  bridge.thinkingEnded.connect(function(){ finishThinking(); });
+  bridge.textAppended.connect(function(json){
+    var d = JSON.parse(json);
+    setLastAssistantText(d.text, d.avatar);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# 本地环境与构建产物
+venv/
+.venv/
+dist/
+build/
+*.spec
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.scratch/
+.workbuddy/
+
+# 历史备份与调试残留
+.backup_*/
+.archive_*/
+*.log
+ark_chat.txt
+ark_resp.txt
+
+# 本机数据（真源在 %APPDATA%\wanzhou-pet，仓库里不放）
+config.json
+config-*.json
+sessions*/
+self_talk_texts.json
+self_talk_voice/
+sounds_cache/
+voice_chime_cache/
+updates/
