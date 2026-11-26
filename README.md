@@ -60,12 +60,12 @@
 
 ## 发布与更新
 
-**已经下载过的用户怎么收到新版**：客户端启动时过 10 秒查一次，运行中每 12 小时再查（三只桌宠共用 `%APPDATA%\wanzhou-pet\updates\auto-check.json`，全产品一天只查一次）。有新版会弹右下角可点击通知 + 桌宠气泡，点开就是更新窗，里面直接显示百度网盘链接和提取码，点「打开下载页」就能去下新版压缩包。同一版本只打扰一次，三天后才再提醒；右键菜单「检查更新」任何时候都能手动查。不想自动查可在 `config.json` 顶层写 `"auto_check_update": false`。
+**已经下载过的用户怎么收到新版**：客户端启动时过 10 秒查一次，运行中每 12 小时再查（三只桌宠共用 `%APPDATA%\wanzhou-pet\updates\auto-check.json`，全产品一天只查一次）。有新版会弹右下角可点击通知 + 桌宠气泡，点开就是更新窗，显示版本说明和 GitHub Release 的下载直链，点「打开下载页」就能去下新版压缩包。同一版本只打扰一次，三天后才再提醒；右键菜单「检查更新」任何时候都能手动查。不想自动查可在 `config.json` 顶层写 `"auto_check_update": false`。
 
 - 发布仓库：[todaywish945-ux/wanzhou](https://github.com/todaywish945-ux/wanzhou)。**版本真源是仓库根目录 `update.json`**（jsDelivr 三条镜像），GitHub Releases API 只在清单全取不到时兜底——仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目版本。
-- 发 exe：① 同步改 `pet/__init__.py::__version__` 与 `update.json.version`；② 装构建依赖 `venv\Scripts\python.exe -m pip install -r scripts\requirements-build.txt`，跑 `powershell -ExecutionPolicy Bypass -File scripts\build_onedir.ps1`；③ 得到 `dist\wanzhou-<版本>-portable.zip`（里面是 `wanzhou-pet\` 目录 + `wanzhou-pet.exe`），传百度网盘；④ 跑 `python scripts/make_update_manifest.py --version <版本> --notes "更新说明" --download-url "https://pan.baidu.com/s/xxx" --download-code <提取码> --archive dist\wanzhou-<版本>-portable.zip` 写回清单；⑤ 代码推 main，在 GitHub 建 `v<版本>` Release（正文贴网盘链接+提取码），提交 `update.json` 到 main，等 jsDelivr 同步几分钟。完整步骤见 `update.json` 的 `_publish_steps`。
+- 发 exe：① 同步改 `pet/__init__.py::__version__` 与 `update.json.version`；② 装构建依赖 `venv\Scripts\python.exe -m pip install -r scripts\requirements-build.txt`，跑 `powershell -ExecutionPolicy Bypass -File scripts\build_onedir.ps1`；③ 把代码推 main，在 GitHub 建 `v<版本>` Release，并把 `dist\wanzhou-<版本>-portable.zip` 作为附件上传（单文件上限 2 GiB）；④ 跑 `python scripts/make_update_manifest.py --version <版本> --notes "更新说明" --download-url "https://github.com/todaywish945-ux/wanzhou/releases/download/v<版本>/wanzhou-<版本>-portable.zip" --archive dist\wanzhou-<版本>-portable.zip` 写回清单；⑤ 提交 `update.json` 到 main，等 jsDelivr 同步几分钟。完整步骤见 `update.json` 的 `_publish_steps`。
 - 用户解压后**双击 `wanzhou-pet.exe` 就会同时出现三只桌宠**：这个 exe 是启动器，会拉起三个独立进程（slot 1/2/3 = 角色 A/B/C），各自记位置、缩放和设置；三个进程共用一个托盘区。不需要 Python、不需要 venv、不需要 bat。
-- 这是绿色便携包，不是 Inno Setup 安装包：没有自动覆盖安装，`update.json.assets` 里是便携 zip 而非 exe 安装器，所以「下载并安装」按钮禁用，用户走「打开下载页」手动下载解压；通知与提取码仍然自动送到。
+- 这是绿色便携包，不是 Inno Setup 安装包：没有自动覆盖安装，`update.json.assets` 里是便携 zip 而非 exe 安装器，所以「下载并安装」按钮禁用，用户走「打开下载页」手动下载解压；新版本通知仍然自动送到。
 
 ## 参考与许可
 
