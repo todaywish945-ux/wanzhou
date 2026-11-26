@@ -179,7 +179,7 @@ def test_settings_process_prefers_main_process_snapshot_env(tmp_path, monkeypatc
     fa.reset_snapshot_for_tests()
     monkeypatch.setenv(fa.ENV_FEATURE_SNAPSHOT, "weather,todo")
     fa.freeze_for_settings_process(cfg)
-    # 晚昼桌宠移植：todo 未随移植携带，冻结时被保留集过滤
+    # 挽昼桌宠移植：todo 未随移植携带，冻结时被保留集过滤
     assert fa.snapshot() == frozenset({"weather"})
     # ③ 无透传 + 全新空目录：自己的判定 = 新装全模块（功能页已隐藏）
     fa.reset_snapshot_for_tests()

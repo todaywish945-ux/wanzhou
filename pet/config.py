@@ -473,7 +473,7 @@ def _app_dir_name() -> str:
     packaging/build_variant.py（VARIANT = "webm-chat" 等），
     使 Chat / 无 Chat 等变体各自使用独立的配置目录、会话与自启项。
     """
-    # 晚昼桌宠：固定数据目录名（不使用上游的打包变体分目录机制）。
+    # 挽昼桌宠：固定数据目录名（不使用上游的打包变体分目录机制）。
     return "wanzhou-pet"
 
 

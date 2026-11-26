@@ -251,7 +251,7 @@ class UpdateDialog(QDialog):
 
     def __init__(self, config, *, include_chat: bool = True, release=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("晚昼桌宠 · 检查更新")
+        self.setWindowTitle("挽昼桌宠 · 检查更新")
         self.setMinimumWidth(460)
         try:
             from .application_icon import load_application_icon

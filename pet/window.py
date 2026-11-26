@@ -139,7 +139,7 @@ def _resolve_self_talk_image_dir(raw: str) -> str:
 
 
 # 直播捕获兼容模式下窗口标题（普通顶层窗口需要可见标题，供直播姬/OBS 选择）
-STREAM_CAPTURE_TITLE = '晚昼桌宠'
+STREAM_CAPTURE_TITLE = '挽昼桌宠'
 
 IDLE = "IDLE"
 DRAGGING = "DRAGGING"
@@ -770,7 +770,7 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         # sync_optional_services() 自身以 _install_effect_services() 收尾。
         self.sync_optional_services()
 
-        # 骗子酒馆牌局联动（晚昼桌宠移植版）：轮询项目根的联动事件.json
+        # 骗子酒馆牌局联动（挽昼桌宠移植版）：轮询项目根的联动事件.json
         self._game_link = GameLink(self)
 
     @property

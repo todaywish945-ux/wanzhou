@@ -58,7 +58,7 @@ def acquire_overlay_instance_gate(config_dir: Path | str,
                                   instance_id: str = "") -> "OverlayInstanceGate":
     """启动链入口（``app.main``）：无条件建门。
 
-    晚昼桌宠移植注：三角色 = 三个独立进程并存，锁按实例名后缀隔离
+    挽昼桌宠移植注：三角色 = 三个独立进程并存，锁按实例名后缀隔离
     （overlay-instance-<instance>.lock），同角色仍互斥。
 
     返回门对象：``gate.acquired`` 为假即「已有实例在运行」，调用方留痕后按

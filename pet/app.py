@@ -1361,7 +1361,7 @@ class AppShell:
             self._mark_slot0_profile_unusable(migration)
         pet_profiles.migrate_active_set(config.dir)
         active_slots = list(pet_profiles.load_active_set(config.dir).slots)
-        # 晚昼桌宠移植注：三角色三进程各占 slot 1/2/3，但 active set 没有进程
+        # 挽昼桌宠移植注：三角色三进程各占 slot 1/2/3，但 active set 没有进程
         # 注册机制（上游由 overlay 生成/用户操作写入）。这里把本进程 slot 补
         # 登记进活跃集合，否则 legacy 建窗分支会把本进程当"空托盘"处理。
         _mine = self._slot_id if self._slot_id is not None else 0
@@ -1379,7 +1379,7 @@ class AppShell:
             # 启动期不替用户改盘（也不"自动修复"坏档案）。
             active_slots = [n for n in active_slots if n != 0]
         self._active_pet_slots = active_slots
-        # 晚昼桌宠移植注：三角色 = 三个独立进程，各占独立 slot 档案
+        # 挽昼桌宠移植注：三角色 = 三个独立进程，各占独立 slot 档案
         # （--slot N → config-slot-N.json），位置/角色互不覆盖。
         _slot = self._slot_id if self._slot_id is not None else 0
         identity = SimpleNamespace(dir=config.dir,
@@ -2591,7 +2591,7 @@ class AppShell:
                 self._create_ui_with_character_fallback(str(self.instance.config.get(
                     'character', catalog.DEFAULT_CHARACTER)))
             elif self._slot_id in self._active_pet_slots:
-                # 晚昼桌宠移植注：三角色 = 三个独立进程各占 slot 1/2/3。
+                # 挽昼桌宠移植注：三角色 = 三个独立进程各占 slot 1/2/3。
                 # 上游 legacy 只认 slot0 建主窗；这里让活跃集合里登记的本进程
                 # slot 也建自己的 PetWindow（否则三只进程全是"空托盘"僵尸）。
                 self._create_ui_with_character_fallback(str(self.instance.config.get(
@@ -3469,7 +3469,7 @@ class AppShell:
             # （config 默认 True / 设置页默认 False），绝不拿它判模块激活。
             enabled = False
         if getattr(self, "_slot_id", None) not in (None, 1):
-            # 晚昼桌宠移植注：三角色 = 三个独立进程，岛是设备级 UI，只由
+            # 挽昼桌宠移植注：三角色 = 三个独立进程，岛是设备级 UI，只由
             # 角色A（slot 1）进程承载，B/C 进程不建岛——否则三只岛叠在同一位置。
             enabled = False
         if not enabled:
@@ -4297,7 +4297,7 @@ class AppShell:
             if shell is not None:
                 shell.open_update_dialog(release)
 
-        self.system_notify("晚昼桌宠 · 新版本", message, on_click=open_update, duration_ms=12000)
+        self.system_notify("挽昼桌宠 · 新版本", message, on_click=open_update, duration_ms=12000)
 
     def open_update_dialog(self, release=None) -> None:
         """打开独立更新窗（侧栏无「更新」域，所有入口都落这里）。"""
@@ -4622,7 +4622,7 @@ class AppShell:
         tray.setContextMenu(menu)
         # 托盘提示同样说实话：默认的通用 tooltip 会让"桌面上什么都没有"看起来像
         # 悬停没反应，而不是"这只宠物当前没有捕获窗"。
-        tray.setToolTip("晚昼桌宠：没有可显示的桌宠")
+        tray.setToolTip("挽昼桌宠：没有可显示的桌宠")
         tray.show()
         if not QSystemTrayIcon.isSystemTrayAvailable():
             from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
@@ -5063,7 +5063,7 @@ class AppShell:
         menu.addAction('退出', self.request_app_quit)
 
         tray.setContextMenu(menu)
-        tray.setToolTip('晚昼桌宠')
+        tray.setToolTip('挽昼桌宠')
         tray.show()
         # F5：菜单已由新菜单接管后，显式记录所有权并释放被替换的旧菜单
         #（owner 生命周期：强引用保活到替换，旧菜单延迟销毁防泄漏）。
@@ -5152,7 +5152,7 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
             logging.error("缺少 --slot 参数值")
             return 1
 
-    # 晚昼桌宠：三角色独立进程（--instance/--character，A/B/C 别名对齐旧版 bat）。
+    # 挽昼桌宠：三角色独立进程（--instance/--character，A/B/C 别名对齐旧版 bat）。
     instance_id = ""
     if "--instance" in argv:
         index = argv.index("--instance")
@@ -5212,12 +5212,12 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
             "已有实例在运行（门 %s，持有者 pid=%s）：本次启动退出",
             overlay_gate.path, overlay_gate.holder_pid(),
         )
-        # 晚昼桌宠移植注：静默闪退会让用户以为启动失败（已实测困惑）——
+        # 挽昼桌宠移植注：静默闪退会让用户以为启动失败（已实测困惑）——
         # 弹一条 2.5 秒自动消失的提示，明确"已经在运行"。
         try:
             from PySide6.QtCore import QTimer as _QTimer
             from PySide6.QtWidgets import QMessageBox as _QMB
-            box = _QMB(_QMB.Icon.Information, "晚昼桌宠",
+            box = _QMB(_QMB.Icon.Information, "挽昼桌宠",
                        "桌宠已经在运行啦～"
                        "屏幕上找不到的话：看看任务栏托盘（右下角，可能在"
                        " ^ 折叠区），双击托盘图标即可显示 / 隐藏。")
@@ -5270,7 +5270,7 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
             controller.start()
         except Exception as exc:
             logging.exception("启动失败")
-            _show_startup_error("晚昼桌宠", str(exc))
+            _show_startup_error("挽昼桌宠", str(exc))
             return 1
 
         logging.info("进入事件循环")

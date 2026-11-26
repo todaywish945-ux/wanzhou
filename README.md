@@ -1,6 +1,6 @@
-# 晚昼桌宠
+# 挽昼桌宠
 
-三个 Q 版桌宠，对应《绝区零》「挽昼」三姐妹——德蕾琪娜（小妹）、林德薇恩（二姐）、艾尔妲（大姐）。角色素材来自 X 用户 [@mask_robot](https://x.com/mask_robot/status/2123840697035878568) 的 Sunbriggers 表情包（AI 超分 2 倍 + 透明背景处理），框架移植自开源项目 [MerZlin/dsh-pet-indesktop](https://github.com/MerZlin/dsh-pet-indesktop)（MIT，感谢原作者与上游 PC2005-cloud/dsh-pet），动画保留本项目的 GIF 表情路线。
+三个 Q 版桌宠，对应《绝区零》「挽昼」三姐妹——德蕾琪娜（小妹）、林德薇恩（二姐）、艾尔妲（大姐）。角色素材为《绝区零》挽昼三姐妹的表情素材（AI 超分 2 倍 + 透明背景处理），版权归米哈游所有；动画保留本项目的 GIF 表情路线。
 
 三位桌宠的人设（身份、性格、说话风格）写在各自的 `assets/characters/角色X/manifest.json` 的 `chat.system_prompt` 里，AI 对话会按角色读取；显示名同在该文件的 `name` 字段。角色身份为同人设定，仅用于桌宠陪伴与对话，版权归米哈游。
 
@@ -67,7 +67,10 @@
 - 用户解压后**双击 `wanzhou-pet.exe` 就会同时出现三只桌宠**：这个 exe 是启动器，会拉起三个独立进程（slot 1/2/3 = 角色 A/B/C），各自记位置、缩放和设置；三个进程共用一个托盘区。不需要 Python、不需要 venv、不需要 bat。
 - 这是绿色便携包，不是 Inno Setup 安装包：没有自动覆盖安装，`update.json.assets` 里是便携 zip 而非 exe 安装器，所以「下载并安装」按钮禁用，用户走「打开下载页」手动下载解压；新版本通知仍然自动送到。
 
+## 二创声明
+
+本项目是《绝区零》角色「挽昼」三姐妹的**非官方、非商业粉丝二次创作**，与米哈游及《绝区零》官方无任何关联，不代表官方立场。角色名称、设定及所有素材版权归米哈游所有。本项目仅供个人学习、交流与非商业使用，不收取费用、不用于商业用途。若权利方认为内容不当，请联系仓库作者，我们将及时删除或调整。
+
 ## 参考与许可
 
 - 框架：[MerZlin/dsh-pet-indesktop](https://github.com/MerZlin/dsh-pet-indesktop)（MIT），本地参考副本在 `../_参考/dsh-pet-indesktop`
-- 素材：[@mask_robot](https://x.com/mask_robot/status/2123840697035878568)

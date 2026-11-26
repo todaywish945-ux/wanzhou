@@ -66,7 +66,7 @@ def _pack_source(root: Path, version: str) -> Path:
         for path in sorted(root.rglob("*")):
             if not path.is_file() or _should_skip(path, root):
                 continue
-            bundle.write(path, Path("晚昼桌宠") / path.relative_to(root))
+            bundle.write(path, Path("挽昼桌宠") / path.relative_to(root))
     return target
 
 

@@ -1,5 +1,5 @@
 {
-  "_readme": "晚昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。",
+  "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。",
   "version": "1.00",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
   "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip",
@@ -11,8 +11,8 @@
       "urls": [
         "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip"
       ],
-      "size": 405254568,
-      "sha256": "3d3c3297cd5fbab85fcd01e072a1f0c614aef83b382d3f6b80b4d0f3184ce721",
+      "size": 405253253,
+      "sha256": "7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0",
       "platform": "windows",
       "kind": "portable"
     }

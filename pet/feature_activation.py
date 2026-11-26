@@ -70,7 +70,7 @@ def _is_upgrade_install(config) -> bool:
     return False
 
 
-#: 晚昼桌宠移植保留集：overlay/灵动岛/音乐/待办/节日/主动识屏/Agent 联动未随
+#: 挽昼桌宠移植保留集：overlay/灵动岛/音乐/待办/节日/主动识屏/Agent 联动未随
 #: 移植携带，无论配置怎么写都不激活（防止设置页误开导致懒构建崩溃）。
 _PORT_FEATURES = frozenset({
     "weather", "divination", "zzz_launcher", "voice", "chat", "vision", "file_interpret",

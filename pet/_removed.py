@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """移植裁剪桩：被裁掉的子系统在此提供惰性替代实现。
 
-晚昼桌宠移植自 dsh-pet-indesktop，裁掉了 overlay/灵动岛/音乐歌词/待办/节日/
+挽昼桌宠移植自 dsh-pet-indesktop，裁掉了 overlay/灵动岛/音乐歌词/待办/节日/
 主动识屏/Agent 联动/帧序列动画等子系统（对应 feature 门保持关闭，入口永不
 触达）。保留代码里指向这些模块的 import 统一改引本模块：
 

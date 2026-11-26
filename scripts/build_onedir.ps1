@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    晚昼桌宠 Windows 出包：PyInstaller onedir + 便携 zip（无 Inno Setup）。
+    挽昼桌宠 Windows 出包：PyInstaller onedir + 便携 zip（无 Inno Setup）。
 
 .DESCRIPTION
     产物：

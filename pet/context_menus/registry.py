@@ -122,7 +122,7 @@ def _callback_available(name: str) -> Availability:
 
 
 def _add_liar_bar(menu, pet) -> None:
-    """骗子酒馆入口（晚昼桌宠联动）：启动牌局，牌局经联动事件.json 请各桌宠入座。"""
+    """骗子酒馆入口（挽昼桌宠联动）：启动牌局，牌局经联动事件.json 请各桌宠入座。"""
     act = menu.addAction("🃏 骗子酒馆")
     act.triggered.connect(lambda checked=False, p=pet: p.on_launch_liar_bar())
 

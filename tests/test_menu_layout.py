@@ -679,7 +679,7 @@ def test_menu_editor_reorders_and_promotes_actions_with_button_controls():
     editor.move_down_action.trigger()
     reordered_ids = [node["id"] for node in editor.value()["nodes"]]
     chat_index = root_ids.index("chat")
-    # 晚昼桌宠：chat 与 look_screen 之间新增了 liar_bar，下移一格先与它换位
+    # 挽昼桌宠：chat 与 look_screen 之间新增了 liar_bar，下移一格先与它换位
     assert reordered_ids[chat_index : chat_index + 2] == ["liar_bar", "chat"]
 
     promoted = editor.item_for_action("drag_physics")

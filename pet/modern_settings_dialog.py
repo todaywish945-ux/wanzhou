@@ -790,7 +790,7 @@ class ModernSettingsDialog(QDialog):
             try:
                 from .voice.chime_settings import VoiceChimeSettingsPage
             except ImportError:
-                # 晚昼桌宠移植注：报时设置页（chime_settings/tts_panel）未随移植
+                # 挽昼桌宠移植注：报时设置页（chime_settings/tts_panel）未随移植
                 # 携带——语音域降级为空（TTS 开关走右键菜单），设置对话框照常打开。
                 VoiceChimeSettingsPage = None
                 logging.getLogger(__name__).info("语音报时设置页未随移植携带，语音域降级为空")
@@ -802,7 +802,7 @@ class ModernSettingsDialog(QDialog):
         # 模块未激活：整页不构造（不挂载、不写回；「语音」域只剩语音报时组）
         self.festival_page = None
         if _fa.is_active("festival"):
-            # 晚昼桌宠移植注：节日设置页未随移植携带（festival 功能默认关闭），
+            # 挽昼桌宠移植注：节日设置页未随移植携带（festival 功能默认关闭），
             # 恒走 None 降级，不再以惰性桩冒充 QWidget。
             pass
 

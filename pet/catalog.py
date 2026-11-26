@@ -152,7 +152,7 @@ def _verify_animation_pools() -> None:
         raise RuntimeError(f"动作池应为 42，实际 {len(ACTS)}")
 
 
-# 晚昼桌宠移植注：该断言校验的是上游 shenshen 素材包（51 动画/42 动作），
+# 挽昼桌宠移植注：该断言校验的是上游 shenshen 素材包（51 动画/42 动作），
 # 本工程使用自有 GIF 素材，数量不同属预期——不再调用 _verify_animation_pools。
 
 
