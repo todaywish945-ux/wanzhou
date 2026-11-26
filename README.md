@@ -1,6 +1,6 @@
 # 晚昼桌宠
 
-三个 Q 版桌宠，对应《绝区零》「挽昼」三姐妹——德蕾琪娜（小妹）、林德薇恩（二姐）、艾尔妲（大姐）。角色素材来自 X 用户 [@mask_robot](https://x.com/mask_robot/status/2123840697035878568) 的 Sunbriggers 表情包（AI 超分 2 倍 + 透明背景处理），框架移植自开源项目 [MerZlin/dsh-pet-indesktop](https://github.com/MerZlin/dsh-pet-indesktop)（MIT，感谢原作者与上游 PC2005-cloud/dsh-pet），动画保留本项目的 GIF 表情路线。
+三个 Q 版桌宠，对应《绝区零》「挽昼」三姐妹——德蕾琪娜（小妹）、林德薇恩（二姐）、艾尔妲（大姐）。角色素材来自 X 用户 [@mask_robot](https://x.com/mask_robot/status/2123840697035878568) 的 Sunbriggers 表情包（AI 超分 2 倍 + 透明背景处理），动画保留本项目的 GIF 表情路线。
 
 三位桌宠的人设（身份、性格、说话风格）写在各自的 `assets/characters/角色X/manifest.json` 的 `chat.system_prompt` 里，AI 对话会按角色读取；显示名同在该文件的 `name` 字段。角色身份为同人设定，仅用于桌宠陪伴与对话，版权归米哈游。
 
