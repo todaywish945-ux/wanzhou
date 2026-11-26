@@ -1,334 +1,325 @@
-# 给 AI 助手的全流程安装指令模板
+# 给 AI 助手的全流程配置指令（挽昼桌宠 v1.00）
 
-> 配套「挽昼桌宠」v1.00 便携版使用。
-> 用户不需要懂代码、不需要装 Python：把下面的指令卡**按顺序**复制给 AI 助手（能操作电脑/浏览器的那种），AI 负责下载、解压、启动、填配置；**只有必须本人做的事才让用户做**。
+> 你是我的电脑配置助手。目标：把「挽昼桌宠」v1.00 便携版装好，三只桌宠同时出现在桌面，AI 对话能回复，语音按我选的方式配置。
 >
-> 本提示词基于 v1.00 真实发布物与配置路径核对过：Release 附件、exe 启动器、右键菜单名、`%APPDATA%\wanzhou-pet\config.json`、智谱 GLM 默认参数。
-> 相关的发布与更新说明见 [`README.md`](README.md)。
+> **严格按阶段执行**：每阶段完成 → 对照验收标准自检 → 更新进度文件 → 一句话向我简报 → 进入下一阶段。
+> 用户不用懂代码、不用装 Python、不用找安装向导：这是绿色便携包。
+>
+> 本提示词按 v1.00 真实发布物与源码核对：Release 附件、`packaging/pet_entry.py` 启动器、右键菜单、`%APPDATA%\wanzhou-pet\config.json`、`pet/chat/models.py`、`pet/tts/`。
+>
+> **与另一款「敲敲 / 叶瞬光桌宠」的区别（不要照抄那边的步骤）**：本项目没有安装包、没有 `http://127.0.0.1:37820/health`、没有角色皮肤下载、没有在线声音克隆、没有 `llm.backup` 自动备用接口。不要去找这些，也不要往配置里硬写不存在的字段。本项目是**便携 zip + 启动器 exe + 多 provider 可切换 + TTS 朗读后端**。
 
 ---
 
-## 使用说明（先读）
-
-1. 假设用户电脑是 **Windows 10/11 64 位**。所有 `<尖括号>` 处替换成真实值。
-2. **按 卡0 → 卡1 → 卡2 → 卡3 → 卡4 顺序执行**，不要跳步。卡4.5（换模型）、卡5/卡6 可选，卡7 是排障，卡8 是懒人总指令。
-3. 每张卡都有「✅ 成功标准」。AI 每完成一步，必须**贴出证据**：命令输出、文件路径、窗口标题，或截图（如果你有截图能力）。
-4. **AI 的行为边界**：
-   - 能自己做的（下载、校验、解压、运行、改配置、点按钮、读日志）全部自己做。
-   - **只有这些必须让用户做**：注册/登录网站、短信/邮箱验证码、实名认证、创建并复制 API Key、同意用户协议、付费确认、以及任何需要账号密码的操作。
-   - 需要用户操作时，用固定格式说：
-     > **【需要你操作】** 请现在做：…… 做完回复「继续」。
-     用户回复前不要往下走，也不要替用户猜 Key。
-5. 不建议让用户把 API Key 贴在聊天里；更推荐用户**自己在设置窗里输入**，避免 Key 留在对话记录中。若用户坚持贴给你，填完后不要再复述这个 Key。
-6. 出问题先走卡7，不许重装系统、不许改源码、不许删除 `%APPDATA%\wanzhou-pet` 里的配置。
-
----
-
-## 卡0 · 下载发布包并校验（AI 全自动）
-
-**📋 给 AI 的指令（复制）**
+## 【我的信息】（发给 AI 前填，可留空）
 
 ```text
-请帮我下载挽昼桌宠 v1.00 的便携包并安装准备。你来做，不用问我技术细节。
+对话模型：<可留空 = 阶段 2 把选项发给我选；也可直接写厂商名：智谱 / 火山引擎豆包 / 硅基流动 / 阿里云百炼 / OpenAI / 其他>
+对话 API Key：<绝对不要贴在聊天里；阶段 2 我会自己在设置窗口输入。如果已经贴过，用完后去服务商控制台换一把新 Key>
+接口地址：<仅「其他 / 自备」时填 OpenAI 兼容 baseUrl（能拼出 /chat/completions）；不填留空>
+模型名：<仅「其他 / 自备」时填；不填留空>
+备用模型：<可选。本项目没有自动备用接口；写第二家厂商名表示「在 API 列表里再加一个可手动切换的 provider」，不填就不加>
+语音方式：<可留空 = 阶段 3 检测后给选项；也可直接写 A/B/C/D/E/F>
+  A 默认 Edge 语音（免 Key，推荐先跑通）
+  B 豆包 2.0 TTS（需火山/豆包 Key）
+  C MiMo TTS（需小米 Key）
+  D Windows SAPI 本地语音（免 Key，音质一般）
+  E 本地 GPT-SoVITS（免 Key，需英伟达显卡 + 整合包）
+  F 暂不配声音（纯文字）
+整合包目录：<仅 E 需要；GPT-SoVITS 整合包解压后的目录，必须是纯英文路径>
+```
 
-1. 用 PowerShell 下载：
-   $url = "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip"
+---
+
+## 【进度管理（最先做，每阶段都要更新）】
+
+进度文件：`%APPDATA%\wanzhou-pet\配置进度.json`（应用数据目录在阶段 1 启动后即生成）。
+
+格式：
+
+```json
+{"stage":"1","status":"done","evidence":"三只进程运行；压缩包 SHA256 校验通过"}
+```
+
+规则：
+
+1. 每次开始先读这个文件。**已存在且 `status=done` 的阶段直接跳过，绝不重做**。
+2. 每完成或失败一个阶段，立即写入：阶段号、`done|failed`、一句话证据（**不许写 Key**）。
+3. 写失败也继续用聊天汇报，不要因为进度文件问题中断全流程。
+4. 阶段编号：1 下载启动 / 2 对话模型 / 3 语音 / 4 最终验收。
+
+---
+
+## 阶段 1 · 下载便携包、解压并启动三只桌宠
+
+**任务**：下载 v1.00 便携包 → 校验 → 解压到英文路径 → 启动器拉起三只。
+
+1. 下载到用户下载文件夹（三个链接是同一个文件，按顺序试，哪个通用哪个）：
+   - 主链接（GitHub 直连）：`https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
+   - 国内加速：`https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
+   - 备用镜像：`https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
+   - 都失败就打开 Release 页 `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00` 让我自己下，并问我新文件路径。
+2. PowerShell 校验（必须做）：
+   ```powershell
    $zip = "$env:USERPROFILE\Downloads\wanzhou-1.00-portable.zip"
-   Invoke-WebRequest -Uri $url -OutFile $zip
-2. 校验文件（必须做）：
    Get-Item $zip | Select-Object FullName,Length
    Get-FileHash -Algorithm SHA256 $zip
-   期望大小：405253253 字节
-   期望 SHA-256：7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0
-   不一致就停下来告诉我，不要继续解压。
-3. 校验通过后告诉我：文件完整、路径和大小。
-
-注意：这是绿色便携包，没有 setup.exe、不需要安装向导、不需要 Python。
-```
-
-**✅ 成功标准**：文件大小和 SHA-256 与上面一致。
-
-**⚠️ 失败时补一句**：「网络慢就多等一会儿；若 GitHub 直连失败，把 Release 页 `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00` 发给我，让我自己在浏览器里下载后告诉你新文件路径。」
-
----
-
-## 卡1 · 解压并启动三只桌宠（AI 全自动，用户只做视觉确认）
-
-**📋 给 AI 的指令（复制）**
-
-```text
-发布包已下载在 <卡0 得到的 zip 路径>。请继续：
-
-1. 解压到一个纯英文路径，推荐：
+   ```
+   期望大小：`405253253` 字节
+   期望 SHA-256：`7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0`
+   不一致就停下，不要解压。
+3. 解压（纯英文路径，推荐用户目录）：
+   ```powershell
    $dest = "$env:USERPROFILE\wanzhou-pet"
-   Expand-Archive -Path "<zip 路径>" -DestinationPath $dest -Force
-   解压后目录结构应是：
-   <dest>\wanzhou-pet\wanzhou-pet.exe
-   <dest>\wanzhou-pet\_internal\
-2. 确认 exe 和 _internal 在同一层目录。不要把 exe 单独移走——移走就跑不起来。
-3. 启动：
+   Expand-Archive -Path $zip -DestinationPath $dest -Force
+   ```
+   确认结构：
+   ```
+   $dest\wanzhou-pet\wanzhou-pet.exe
+   $dest\wanzhou-pet\_internal\
+   ```
+   **exe 必须和 `_internal` 在同一层**，不能单独移动 exe。
+4. 启动：
+   ```powershell
    Start-Process -FilePath "$dest\wanzhou-pet\wanzhou-pet.exe"
-4. 启动器会拉起三个独立进程（角色 A/B/C），桌面上应该同时出现三只桌宠。
-   如果你有截图能力就自己看；没有就按下面格式让我确认。
+   ```
+   启动器会拉起三个进程（角色 A/B/C）。用下面命令拿证据：
+   ```powershell
+   Get-CimInstance Win32_Process -Filter "Name='wanzhou-pet.exe'" |
+     Select-Object ProcessId,CommandLine
+   ```
+   应看到三条带 `--slot 1/2/3` 的命令行。
+5. 视觉确认：
+   **【需要你操作】** 请现在看桌面：是不是同时出现三只 Q 版桌宠（德蕾琪娜、林德薇恩、艾尔妲）？看到了回复「看到了」，否则回复「没看到」。
+   - 你有截图能力就自己先看，没能力就用上面格式问我。
 
-【需要你操作】请现在看桌面：是不是同时出现了三只 Q 版桌宠（德蕾琪娜、林德薇恩、艾尔妲）？
-看到了回复「看到了」，没看到回复「没看到」。
-```
+**✅ 阶段 1 验收标准**：zip 校验通过；`wanzhou-pet.exe` 与 `_internal` 同目录；三条 `--slot` 进程存在；用户确认三只桌宠在桌面。
 
-**✅ 成功标准**：桌面三只都在；任务栏/托盘有应用图标；exe 路径与 `_internal` 同目录。
+**失败处理**：
+- 一闪就没了 → 读 `%APPDATA%\wanzhou-pet\pet-overlay-gate.log` 与最新 `pet-*.log` 最后 50 行。
+- Windows 报病毒/未知发布者 → 这是 PyInstaller 便携包常见误报；若信任来源选「仍要运行」，不要删文件。
+- 连续失败 2 次（含换镜像）→ 停下，把最后输出原样贴给我。
 
-**⚠️ 失败时补一句**：
-- 「没看到三只」→ 检查是否把 exe 单独复制出去；重新完整解压再启动。
-- 「Windows 提示病毒/未知发布者」→ 这是 PyInstaller 便携包常见误报，若你信任来源请选择「仍要运行」；不要删文件。
-- 「一闪就没了」→ 读 `%APPDATA%\wanzhou-pet\pet-overlay-gate.log` 和最新的 `pet-*.log` 最后 50 行，把报错贴给我，不要重装。
-
----
-
-## 卡2 · 注册智谱账号并拿到 API Key（必须用户参与）
-
-> 桌宠默认使用智谱 GLM（`https://open.bigmodel.cn/api/paas/v4`，模型 `glm-4.5-flash`）。没有 Key 时三只桌宠照常显示，但 AI 对话不会回复。
-> 注册、登录、验证码、创建 Key 是账号操作，AI 不能替你完成，必须让用户做。
-
-**📋 给 AI 的指令（复制）**
-
-```text
-现在要拿到 AI 对话用的 API Key。大部分是账号操作，需要我本人做，请你一步步指导我，不要替我猜。
-
-1. 打开浏览器到 https://open.bigmodel.cn
-2. 【需要你操作】请现在自己注册/登录智谱开放平台（可能要手机号验证码、实名认证）。
-   完成后回复「登录好了」。
-3. 登录后进入控制台，找到「API Key」管理页（不同版本可能在「我的密钥 / API 密钥」下）。
-   【需要你操作】请自己点「创建新的 API Key」，复制生成的 Key。
-   为了不把 Key 留在聊天记录里，请**先不要贴给我**，等下一步我让你直接填进桌宠设置窗。
-   完成后回复「Key 已复制」。
-4. 告诉我你已经拿到 Key 了；接下来走卡3。
-```
-
-**✅ 成功标准**：用户确认已登录智谱并复制了 API Key（Key 本身不必出现在对话里）。
-
-**⚠️ 失败时补一句**：「如果找不到 API Key 页面，把当前控制台截图/页面文字发我，我按你看到的内容告诉你点哪里；不要去改桌宠源码。」
+完成本阶段后：写进度文件 `stage=1,status=done`，然后只说一句：「阶段1完成：三只桌宠已启动，准备选对话模型。」
 
 ---
 
-## 卡3 · 把 Key 填进桌宠并测试连接（AI 操作界面，用户只填 Key）
+## 阶段 2 · 选对话模型并配置 API Key
 
-> 桌宠设置窗里 API Key 会存到 **Windows 凭据管理器**（服务名 `dsh-pet-standalone`，条目 `provider/openai-main`），不写进明文配置；设置是自动保存的，没有保存按钮。
+### 2.0 先定位配置目录
 
-**📋 给 AI 的指令（复制）**
+应用数据目录固定为：
 
-```text
-Key 已经拿到了。请你操作桌宠界面把它填进去并验证，Key 让我自己输入。
-
-1. 右键任意一只桌宠 →「桌宠设置」；或者右键托盘图标 →「AI 设置」。
-2. 在设置窗左侧点「AI 与对话」域。找到「模型与连接」分组，确认：
-   Provider 名称：智谱 GLM
-   Base URL：https://open.bigmodel.cn/api/paas/v4
-   模型：glm-4.5-flash
-   API Key：先留空，等我输入。
-   这些默认值不要改，除非我明确说要用别的模型服务。
-3. 【需要你操作】请现在把刚才复制的 API Key 粘贴到「API Key」输入框里，粘贴完回复「填好了」。
-   如果输入框把 Key 显示成圆点，是正常的。
-4. 你（AI）点击「测试连接」，等结果。
-   成功：告诉我「测试连接通过」。
-   失败：把窗口里显示的报错原文读给我，不要自己改配置或重装。
-5. 关掉设置窗（关闭即自动保存，不需要保存按钮）。
-
-注意：不要把 Key 写进 README、update.json 或任何项目文件；不要把它贴回聊天里。
+```
+%APPDATA%\wanzhou-pet\
 ```
 
-**✅ 成功标准**：「测试连接」显示成功；设置窗已关闭；`%APPDATA%\wanzhou-pet\config.json` 里 `chat.providers` 下当前 provider 存在但 `api_key` 为空（凭据在 Windows 凭据管理器里，这是正常的）。
+主配置：`%APPDATA%\wanzhou-pet\config.json`。
 
-**⚠️ 失败时补一句**：
-- 「测试连接 401 / 无效 Key」→ 让用户回智谱控制台确认 Key 是否复制完整、是否停用。
-- 「读不到凭据」→ 说明系统钥匙串不可用；这时配置会自动退化为明文保存，仍可先用；不要反复删配置。
-- 「找不到 AI 与对话」→ 用托盘「AI 设置」直接进入 AI 设置对话框，效果一样。
+**以后所有配置操作都用它**。不需要为了生成配置去点保存：桌宠启动后目录就存在。为稳妥，可以让用户右键桌宠 →「桌宠设置」→ 关窗（自动保存）一次。
+
+### 2.1 先让我选，不要直接开配
+
+把下面菜单**原样**发在聊天里（只发名称和一句话说明，先不要发教程步骤），然后停下来等我回复：
+
+1. **智谱 GLM（推荐 · 中文口语好）** —— 手机号注册，默认模型 `glm-4.5-flash`，部分 Flash 档免费/极低价，以注册页实际显示为准。
+2. **火山引擎豆包（方舟）** —— 免费额度大、口语自然；但实名 + 开通模型 + 创建接入点步骤较多，地域要选北京。
+3. **硅基流动** —— 一个 Key 调多家开源模型、国内直连；免费档模型偏小，长对话容易平淡。
+4. **阿里云百炼（通义千问）** —— 中文质量稳定，新用户有额度但有效期有限；将来想用百炼语音可一个平台搞定。
+5. **OpenAI / 我自己的 Key / 其他厂商** —— 完全自由；baseUrl、模型名、费用、网络都自己负责。
+6. **你帮我选** —— 默认 ① 智谱；注册受阻就换下一家，不硬推。
+
+规则：
+
+- 如果我在【我的信息】已经写了厂商名或 Key，跳过菜单，直接按对应路线走。
+- 如果我只给了 Key 没写厂商：先问我这是哪家的（`ark-` 开头通常是火山引擎；分不清就问在哪个网站注册的），不要默认按智谱处理。
+- 如果我给了接口地址 + 模型名：跳过菜单，直接写这两项，Key 仍由我自己在设置窗口填。
+- 如果我表示不想注册 / 没手机号 / 注册页要求先付费：**立刻停下**，把剩余选项再发一遍；所有注册都不要就问我有没有现成 Key；没有就先跳过对话配置，阶段 3/4 照常，不要硬塞。
+- **不要读取、复述、写进任何文件/日志/进度文件的 API Key。**
+
+### 2.2 开通教程（按我选的路线，一步一步带；每步只发一条，等我确认再继续）
+
+**① 智谱 GLM**
+1. 打开 `https://open.bigmodel.cn`，让我自己注册/登录（手机号验证码）。
+2. 进入控制台 → 找到「API Key」管理页 → 让我点创建并复制 Key。
+3. 告诉我：API 地址填 `https://open.bigmodel.cn/api/paas/v4`，模型填 `glm-4.5-flash`（或控制台当前可用的 Flash 模型编码）。
+4. 进设置窗由我自己粘 Key（见 2.3）。
+
+**② 火山引擎豆包（方舟）**
+1. 打开 `https://ark.volcengine.com`，让我登录/实名认证，区域选北京。
+2. 在方舟控制台开通要用的豆包模型，创建接入点（Endpoint），记下**接入点 ID（通常 `ep-` 开头）**或控制台给的模型 ID。
+3. 创建 API Key（通常 `ark-` 开头），让我自己复制。
+4. 告诉我：API 地址填 `https://ark.cn-beijing.volces.com/api/v3`，模型填刚才的接入点 ID / 模型 ID。
+5. 若测试 401：先确认 Key 属于同一账号/区域，模型是不是填成了网页显示名而不是接入点 ID。
+
+**③ 硅基流动**
+1. 打开 `https://cloud.siliconflow.cn`，让我注册/登录，控制台创建 API Key。
+2. 在「模型广场 / 模型列表」挑一个当前可用的聊天模型，复制其**完整模型 ID**（可能含 `/`，如 `Qwen/...`）。
+3. 告诉我：API 地址填 `https://api.siliconflow.cn/v1`，模型填刚才复制的模型 ID。
+4. 提醒：免费档常是小模型，闲聊质量一般；免费名单会调整。
+
+**④ 阿里云百炼（通义千问）**
+1. 打开 `https://bailian.console.aliyun.com`，让我登录/实名，开通模型服务。
+2. 控制台创建 API-KEY，让我自己复制。
+3. 从模型列表复制当前模型编码（如 `qwen-plus` 一类，以控制台为准）。
+4. 告诉我：API 地址填 `https://dashscope.aliyuncs.com/compatible-mode/v1`，模型填刚才复制的编码。
+5. 提醒：免费额度有有效期；控制台步骤较多。
+
+**⑤ OpenAI / 自备**
+1. 问我要 baseUrl（OpenAI 兼容、能拼 `/chat/completions`）、模型名；Key 由我自己填。
+2. 示例：OpenAI 官方 baseUrl `https://api.openai.com/v1`，模型从控制台复制（如 `gpt-5-mini` 等）。
+3. 不要替我猜网络/代理/费用；失败就把错误原文给我。
+
+### 2.3 在设置窗填 Key（AI 操作界面，Key 由用户自己输入）
+
+1. 右键任意桌宠 →「桌宠设置」；或右键托盘图标 →「AI 设置」。
+2. 左侧点「AI 与对话」域 →「API 列表」分组。
+3. 默认只有「智谱 GLM」。两种做法：
+   - 就改默认项：选中「智谱 GLM」，改 API 地址 / 模型；
+   - 要保留默认并新增：点「添加」，生成新 provider（如 `api-2`），它有自己的 Key 凭据，不会串用智谱 Key。
+4. 只改这几项：Provider 名称、API 地址、模型。**API Key 输入框留给我**。
+5. **【需要你操作】** 请现在把你复制的 API Key 粘贴到「API Key」输入框，粘贴完回复「填好了」。
+6. 我（AI）点「测试连接」，把结果原文告诉我；Key 不许出现在汇报里。
+7. 关窗（自动保存，没有保存按钮）。若对话没变化，退出全部再双击 `wanzhou-pet.exe` 重启三只。
+
+### 2.4 第二个 provider（仅当【我的信息】写了「备用模型」或我主动要求）
+
+本项目**没有自动备用接口**；所谓「备用」只是在 API 列表里多加一个可手动切换的 provider。
+
+- 告诉用户这一点，别写 `llm.backup` 之类的字段。
+- 按 2.2 对应教程开通第二家，Key 仍由用户自己在设置窗填。
+- 用法：主模型没反应时，右键 →「桌宠设置」→「AI 与对话」→「API 列表」下拉切到第二个即可。不会自动切换。
+- 我不要求就不做，不反复劝；绝不拿主模型的 Key 去填第二家。
+
+### 2.5 注意事项（按路线说一句）
+
+- 智谱：Flash 档高峰可能排队，模型版本会轮换，以控制台当前模型名为准。
+- 火山：地域/接入点 ID 填错最常见，401 先查这两项。
+- 硅基：免费小模型语气一般，长对话容易淡；免费名单常调整。
+- 百炼：免费额度有有效期，到期要重新确认计费。
+- 自备：OpenAI 兼容性和费用自己负责。
+
+**✅ 阶段 2 验收标准**：`config.json` 里当前 provider 的 `base_url`、`model` 非空；API Key 由用户确认已粘贴（凭据在 Windows 凭据管理器，配置里 `api_key` 为空是正常的）；测试连接成功；重启后发「你好」有回复；所有汇报里 Key 打码或写 `<已设置>`。
 
 ---
 
-## 卡4 · 验收对话与常用设置（AI 操作 + 用户确认效果）
+## 阶段 3 · 语音方式（先检测条件，再让我选）
 
-**📋 给 AI 的指令（复制）**
+本项目语音是 **TTS 朗读**（报时 / 自言自语朗读），不是视频里的同款克隆声音。可选项：
 
-```text
-配置完了，请按下面顺序验收，每一步都报告结果：
+- **A 默认 Edge 语音**：`edge-tts`，免 Key，装好就能出声，机器人音，推荐先跑通。
+- **B 豆包 2.0 TTS**：需豆包/火山 Key，音质更好。
+- **C MiMo TTS**：需小米 Key。
+- **D Windows SAPI**：本地系统语音，免 Key，音质一般。
+- **E 本地 GPT-SoVITS**：免 Key，需英伟达显卡 + 整合包 + 参考音频/文本，接近自定义音色。
+- **F 暂不配声音**：纯文字聊天，以后随时能补。
 
-1. 右键任意一只桌宠 →「AI 对话」，打开聊天窗。
-2. 【需要你操作】请在聊天窗发一句「你好」，看她是否回复。
-   有回复回复「通过了」，没回复回复「没反应」。
-3. 如果你有截图能力，确认三只桌宠都还在桌面上、没有被聊天气泡挡住后消失。
-4. 试一下右键菜单能不能打开：「桌宠设置」「检查更新」「天气」「每日英文」这几项点开不报错即可，不用真的改。
-5. 告诉我当前版本：右键 →「工具与帮助」→「检查更新」，气泡应显示「已经是最新版本（1.00）」。
+### 3.1 先自己静默检测，不打扰我
 
-全部通过后给我一份清单：三只是否出现、对话是否通、菜单是否正常、版本是否正确。
+1. N 卡：`nvidia-smi --query-gpu=name --format=csv,noheader` —— 有输出 ✓，报错 ✗。
+2. 本地整合包：我在【我的信息】给了目录 → 检查目录存在且路径纯英文；没给 ✗。
+3. Edge 网络：一般 ✓（无需 Key）；测试连接失败再标 ✗。
+4. 已有 Key：若阶段 2 配了火山 Key → B ✓；配了小米 Key → C ✓；否则对应 ✗。
+5. SAPI：Windows 上一般 ✓。
+
+### 3.2 把检测结果连同条件告诉我，然后必须停下来等我回复 A/B/C/D/E/F
+
+格式示例：
+
+```
+检测结果：N卡 ✓ / 整合包 ✗ / Edge ✓ / 豆包Key ✓ / MiMoKey ✗ / SAPI ✓
+A Edge：免Key，机器人音，立刻可用
+B 豆包：需Key，音质较好
+...
+请回复 A/B/C/D/E/F。
 ```
 
-**✅ 成功标准**：三只桌宠在；发「你好」有中文回复；右键菜单可打开；检查更新显示 1.00 已是最新。
+**不得自行替我选择**，也不得因为某种方式「看起来可行」就默认执行。唯一例外：我在【我的信息】已明确写了语音方式。
 
-**⚠️ 失败时补一句**：「对话没反应先回卡3 重测连接；菜单点了没反应先看是不是桌宠被隐藏了，从托盘恢复。」
+### 3.3 按我的选择执行
+
+**A · Edge（默认）**
+- 无需 Key。确认 `%APPDATA%\wanzhou-pet\config.json` 的 `voice_chime_tts_backend` 为 `edge`（默认值）。
+- 让用户右键桌宠听一次自言自语或开启语音报时；出声即通过。
+
+**B · 豆包 2.0 TTS**
+- 用阶段 2 的火山/豆包 Key（或让我在设置里新填）。
+- 配置写入用户数据目录 `config.json`（不动安装目录）：
+  - `voice_chime_tts_backend`: `doubao`
+  - `voice_chime_doubao_speaker`: 默认 `zh_female_peiqi_uranus_bigtts`，可按控制台音色改
+  - Key 由我在系统凭据里填（服务 `dsh-pet-standalone`，条目 `tts/doubao_api_key`）；**AI 不读取、不复述**。
+- 重启桌宠，听一句；失败把错误原文给我。
+
+**C · MiMo TTS**
+- 让我准备小米 Key，凭据条目 `tts/mimo`，由我自己在系统凭据里填；AI 不读 Key。
+- `voice_chime_tts_backend`: `mimo`；模型 `mimo-v2.5-tts`，音色「冰糖」（可改）。
+- 重启试听。
+
+**D · Windows SAPI**
+- `voice_chime_tts_backend`: `sapi`；音色留空自动挑中文。
+- 免 Key；音质一般。重启试听。
+
+**E · 本地 GPT-SoVITS**
+- 前提：N卡 ✓ + 整合包 ✓ + 纯英文路径。
+- 每只角色有自己的参考音频/文本/端口；本项目默认服务地址 `http://127.0.0.1:9881`。
+- 在 `config.json` 里设置：
+  ```json
+  "voice_chime_tts_backend": "gptsovits",
+  "voice_chime_gptsovits_api_base": "http://127.0.0.1:9881",
+  "voice_chime_gptsovits_ref_audio": "<参考音频绝对路径>",
+  "voice_chime_gptsovits_ref_text": "<逐字文本>",
+  "voice_chime_gptsovits_speed": 100
+  ```
+- 参考音频要 3~10 秒、单人、无背景音乐/混响；文本必须与音频逐字一致。语速保持 100（≈1.0），调高会发闷。
+- 说一句后框架会自动拉起本地服务，首次 1~2 分钟正常；失败读 `%APPDATA%\wanzhou-pet\logs\` 下最新日志最后 30 行。
+- **没有官方训练包/一键训练脚本**；不要去找 `train-pack-*` 之类文件，那是别的项目。
+
+**F · 暂不配**
+- 跳过；说明纯文字聊天已可用，以后再补。
+
+**✅ 阶段 3 验收标准**：用户确认选择；对应后端写对；试听有声音（F 直接通过）；任何汇报里 Key 打码。
 
 ---
 
-## 卡4.5 · 换成其他模型服务（可选）
+## 阶段 4 · 最终验收与报告
 
-> 为什么默认是智谱：项目出厂只预置了一个 provider（`openai-main` = 智谱 GLM），这样小白用户只需要注册一个账号。
-> 但设置页支持**添加多个 provider**，每个都有自己的 API 地址和 Key 凭据，切换时选中对应项即可。下面这张卡只在用户明确想换模型时执行。
-
-**📋 给 AI 的指令（复制）**
-
-```text
-我不想用默认智谱，想换成 <服务名，例如 DeepSeek / OpenAI / 其他 OpenAI 兼容服务>。
-请你操作设置窗，不要改项目源码：
-
-1. 右键桌宠 →「桌宠设置」→ 左侧「AI 与对话」域 →「API 列表」分组。
-2. 点「添加」，系统会复制当前 provider 生成一个新项（如 api-2），并自动选中它。
-3. 只改这四项，其他都不动：
-   Provider 名称：<服务名>
-   API 地址：<见下方对照表>
-   模型：<见下方对照表>
-   API Key：让我自己输入。
-4. 【需要你操作】请现在把你在这个服务官网拿到的 API Key 粘贴到「API Key」输入框，完成后回复「填好了」。
-5. 你点「测试连接」，把结果原文告诉我。通过后关闭设置窗（自动保存）。
-6. 以后想切回智谱：在「API 列表」下拉里选「智谱 GLM」即可，Key 不会丢。
-```
-
-**常见服务对照表**
-
-| 服务 | Provider 名称 | API 地址（填在「API 地址」框） | 低价/入门模型 | 高强度/付费模型示例 | Key 从哪来 |
-|---|---|---|---|---|---|
-| 智谱 GLM（默认） | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.5-flash`（Flash 档，免费/极低价，以控制台为准） | 旗舰/Plus 档，如控制台「模型概览」里标为旗舰的模型编码 | bigmodel.cn |
-| DeepSeek | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-flash` / 旧名 `deepseek-chat`（低价，仍按量计费） | `deepseek-v4-pro`（高强度、更贵，官方当前在售） | platform.deepseek.com |
-| OpenAI | OpenAI | `https://api.openai.com/v1` | `gpt-5-mini`（低价档，按量计费） | `gpt-5.5`（旗舰档，明显更贵） | platform.openai.com |
-| 其他兼容服务 | 自定义 | 服务商给的 Base URL（通常带 `/v1`） | 服务商给的入门模型 ID | 服务商给的旗舰模型 ID | 服务商控制台 |
-
-> **「免费」要说清楚**：表里 Flash / mini 档不是统一免费；智谱部分 Flash 模型可免费调用，DeepSeek/OpenAI 的低价档也是**按量计费，只是单价低**。想用旗舰/推理模型，必须先到服务商控制台确认余额、模型名和价格，别直接照抄网上的旧教程。模型名会变，**一律以控制台「模型概览 / 模型列表」里能复制的模型编码为准**。
-
-**付费/高强度模型的额外设置**（用户明确要更强效果时再做）：
-1. 在「AI 与对话」域找到「深度思考」：选「开启深度思考」；思考强度按需要选低/高/最大。
-2. 「最大输出 Token」建议调到 `8192` 以上；思考过程也计入输出，太小会被截断。
-3. 旗舰模型更慢、更贵；先让用户设好服务商账单/余额上限，再测试连接。
-4. 视觉模型（「看看屏幕」）是另一条配置：设置里「视觉模型复用聊天模型」默认开；若聊天换成不支持视觉的付费模型，要单独填视觉模型地址与模型 ID（如智谱 `glm-4.6v-flash`），否则「看看屏幕」会失败。
-
-**✅ 成功标准**：新 provider 出现在「API 列表」下拉里；选中它时「测试连接」成功；关窗后卡4 的对话验收仍能通过。
-
-**⚠️ 失败时补一句**：
-- 「测试连接认证失败」→ 确认 Key 是否复制完整、是否属于同一个服务；不要把智谱 Key 填到 DeepSeek 里。
-- 「404 / 路径不对」→ 把 API 地址结尾补上 `/v1` 再试；智谱本身带 `/v4`，不要再加 `/v1`。
-- 「想删掉刚加的项」→ 在「API 列表」点「删除」，但至少保留一个 provider。
+1. **【需要你操作】** 请人眼确认三件事：桌面同时有三只桌宠；发一条消息有中文回复；（若配了声音）开口能听见。
+2. 给我最终报告，按阶段列出：
+   - 阶段1：zip 校验值、解压路径、三条 `--slot` 进程证据
+   - 阶段2：当前 provider 名称 / base_url / model（Key 显示 `<已设置>`）、是否加了第二个 provider
+   - 阶段3：选择的语音方式、是否试听通过
+   - 配置摘要：只展示 `%APPDATA%\wanzhou-pet\config.json` 里 `chat.providers` 的 `name/base_url/model`，以及 `voice_chime_tts_backend`；**任何 key/secret 字段一律 `<已设置>`**
+3. 更新进度文件 `stage=4,status=done`。
 
 ---
 
-## 卡5 · 可选设置（用户说要再做）
+## 【全局规则（必须遵守）】
 
-**📋 给 AI 的指令（复制）**
-
-```text
-基础功能已经通了。现在按我的要求做这些可选设置（没提到的不要动）：
-
-- 开机自启：右键任意桌宠 →「桌宠控制」→「开机自启」，打开。
-- 想让三只更小/更大：右键 →「大小」，按我说的档位调。
-- 不想全屏看视频时被隐藏：右键 →「桌宠设置」→「显示」→ 关掉「全屏自动隐藏」。
-- 想让桌宠不跟着鼠标穿插：右键 →「桌宠设置」→「动作与碰撞」→ 调整多开碰撞。
-- 想恢复隐藏的桌宠：右键托盘图标 →「显示 / 隐藏」。
-- 想退出：右键 →「退出」；或者只退一只用托盘对应项。
-
-做完逐项告诉我结果。
-```
+- 不许修改安装目录内的文件和任何源码；只改用户数据目录 `%APPDATA%\wanzhou-pet\config.json` 和系统凭据管理器里的条目。
+- 不许重复运行安装包（本项目也没有安装包）；不许重装系统级软件。
+- **API Key 在一切汇报、日志、命令输出、进度文件里都必须打码或写 `<已设置>`**；我提供的 Key 只写入本机凭据，不得发送给任何第三方。
+- 我在对话里直接给了 Key 或地址：按对应路线使用，不重复索要、不评判、不劝退。
+- 任何阶段连续失败 2 次：停下，贴最后一次输出和日志片段，等我决定。
+- 全程每完成一个阶段写进度文件；已 `done` 的阶段绝不重做。
+- 所有模型名、baseUrl、免费额度以服务商控制台当前显示为准；网上旧教程只作参考。
 
 ---
 
-## 卡6 · 通用排障模板（万能卡）
+## 附录 · 快速路径表
 
-**📋 给 AI 的指令（复制）**
-
-```text
-桌宠出问题了。现象：<一句话描述，例如"三只没出来"/"对话不回复"/"点设置没反应">。
-
-请你按这个流程处理：
-1. 先确认 exe 和 _internal 是否还在同一目录：<dest>\wanzhou-pet\。
-2. 读 %APPDATA%\wanzhou-pet\ 下最新的 pet-*.log 最后 50 行，以及 pet-overlay-gate.log 最后 20 行。
-3. 从日志定位直接原因，用中文向我复述你的判断，不要先动手。
-4. 提出最小修复方案，等我回复「可以」后再做。
-5. 修完按卡4 的四项标准重新验收。
-
-禁止：重装系统软件、删除整个 %APPDATA%\wanzhou-pet、改项目源码、把 Key 贴到聊天里。
-```
-
-**常见现象 → 先查什么**
-- 三只没出来 → exe 是否被单独移走；`pet-overlay-gate.log` 是否写了拒绝原因
-- 对话不回复 → 卡3 的 Key/测试连接；配置是否被新版本重置
-- 更新提示一直不出现 → 右键「检查更新」手动查；确认 `update.json` 版本大于 1.00
-- 窗口不见了 → 托盘右键「显示 / 隐藏」；不要重复双击 exe 造成多开
-
----
-
-## 卡7 · 一键总指令（懒人版）
-
-> 适合已经拿到 Key、想一口气跑完的人。AI 每完成一步停下来向你汇报证据，任何一步失败就停。
-
-```text
-项目是挽昼桌宠 v1.00 便携版，请按顺序执行，每完成一步向我汇报证据后再继续：
-
-第1步 下载并校验：
-  下载 https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip
-  到 $env:USERPROFILE\Downloads，大小应为 405253253 字节，
-  SHA-256 应为 7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0。
-第2步 解压启动：
-  解压到 $env:USERPROFILE\wanzhou-pet，运行其中的 wanzhou-pet\wanzhou-pet.exe。
-  让我确认桌面出现三只桌宠。
-第3步 拿 Key：
-  打开 https://open.bigmodel.cn，指导我登录并创建 API Key；
-  让我自己在设置窗输入，Key 不进聊天记录。
-第4步 填 Key 并测试：
-  右键桌宠 →「桌宠设置」→「AI 与对话」→ 粘贴 Key →「测试连接」，报结果。
-第5步 验收：
-  发「你好」看回复；检查右键菜单；检查更新显示 1.00。
-
-最后给我清单：每步结果 + 当前 exe 完整路径 + 是否三只都出现。
-```
-
----
-
-## 附录A · 路径与名称速查
-
-| 项目 | 值 |
+| 用途 | 路径 / 值 |
 |---|---|
-| 发布页 | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00` |
+| Release 页 | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00` |
 | 直链 | `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip` |
-| 包大小 / SHA-256 | `405253253` / `7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0` |
+| zip 大小 / SHA-256 | `405253253` / `7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0` |
 | 推荐解压目录 | `%USERPROFILE%\wanzhou-pet` |
-| exe 路径 | `%USERPROFILE%\wanzhou-pet\wanzhou-pet\wanzhou-pet.exe` |
-| 必须同目录 | `wanzhou-pet.exe` 和 `_internal\` |
-| 用户配置目录 | `%APPDATA%\wanzhou-pet\` |
-| 主配置 | `%APPDATA%\wanzhou-pet\config.json` |
+| exe | `%USERPROFILE%\wanzhou-pet\wanzhou-pet\wanzhou-pet.exe` |
+| 必须同目录 | `wanzhou-pet.exe` 与 `_internal\` |
+| 用户配置 | `%APPDATA%\wanzhou-pet\config.json` |
+| 进度文件 | `%APPDATA%\wanzhou-pet\配置进度.json` |
 | 会话记录 | `%APPDATA%\wanzhou-pet\sessions*\` |
-| 更新状态 | `%APPDATA%\wanzhou-pet\updates\auto-check.json` |
 | 日志 | `%APPDATA%\wanzhou-pet\pet-*.log`、`pet-overlay-gate.log` |
-| Key 存储 | Windows 凭据管理器，服务 `dsh-pet-standalone`，条目 `provider/openai-main` |
-
-## 附录B · 默认模型参数（不要随便改）
-
-| 字段 | 默认值 |
-|---|---|
-| Provider | 智谱 GLM |
-| Base URL | `https://open.bigmodel.cn/api/paas/v4` |
-| Chat path | `/chat/completions` |
-| 模型 | `glm-4.5-flash` |
-| 请求超时 | 60 秒 |
-| 最大输出 Token | 2048 |
-
-如果用户明确要用其他 OpenAI 兼容服务（DeepSeek、OpenAI、智谱旗舰档等），按卡4.5 添加 provider，只改 Provider 名称 / Base URL / 模型 / Key；选高强度付费模型时再按卡4.5 的「付费/高强度模型的额外设置」调深度思考与最大输出 Token。**不要改 chat_path、超时等默认字段**；模型名一律以服务商控制台当前编码为准。
-
-## 附录C · 版本与提醒
-
-- 当前版本 **1.00**；已经是 1.00 的用户不会收到更新提示，这是正常的。
-- 老用户收到新版通知的前提：仓库 `update.json` 的 `version` 大于 1.00，且已提交到 main 分支。
-- 关闭自动检查：在 `%APPDATA%\wanzhou-pet\config.json` 顶层写 `"auto_check_update": false`。
-
-## 附录D · 本提示词的核对来源
-
-- 发布资产：GitHub Release `v1.00` 的 `wanzhou-1.00-portable.zip` 附件
-- 启动器：`packaging/pet_entry.py`（无 `--slot` 时拉起 slot 1/2/3 三个进程）
-- 设置入口：`pet/context_menus/registry.py`（「桌宠设置」「检查更新」）与 `pet/app.py`（托盘「AI 设置」）
-- 配置字段：`pet/chat/models.py`（ProviderConfig / ChatSettings 默认值）
-- 凭据存储：`pet/chat/models.py::SecretStore`（keyring，服务名 `dsh-pet-standalone`）
-- 自动更新：`pet/updater.py` + 仓库根 `update.json`
+| 聊天 Key 凭据 | Windows 凭据管理器，服务 `dsh-pet-standalone`，条目 `provider/<provider_id>` |
+| 豆包 TTS Key 凭据 | 条目 `tts/doubao_api_key` |
+| MiMo TTS Key 凭据 | 条目 `tts/mimo` |
+| 关闭自动更新检查 | `config.json` 顶层 `"auto_check_update": false` |
