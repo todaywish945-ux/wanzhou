@@ -193,12 +193,20 @@ Key 已经拿到了。请你操作桌宠界面把它填进去并验证，Key 让
 
 **常见服务对照表**
 
-| 服务 | Provider 名称 | API 地址（填在「API 地址」框） | 模型示例 | Key 从哪来 |
-|---|---|---|---|---|
-| 智谱 GLM（默认） | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.5-flash` | bigmodel.cn |
-| DeepSeek | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | platform.deepseek.com |
-| OpenAI | OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` | platform.openai.com |
-| 其他兼容服务 | 自定义 | 服务商给的 Base URL（通常带 `/v1`） | 服务商给的模型 ID | 服务商控制台 |
+| 服务 | Provider 名称 | API 地址（填在「API 地址」框） | 低价/入门模型 | 高强度/付费模型示例 | Key 从哪来 |
+|---|---|---|---|---|---|
+| 智谱 GLM（默认） | 智谱 GLM | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.5-flash`（Flash 档，免费/极低价，以控制台为准） | 旗舰/Plus 档，如控制台「模型概览」里标为旗舰的模型编码 | bigmodel.cn |
+| DeepSeek | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-flash` / 旧名 `deepseek-chat`（低价，仍按量计费） | `deepseek-v4-pro`（高强度、更贵，官方当前在售） | platform.deepseek.com |
+| OpenAI | OpenAI | `https://api.openai.com/v1` | `gpt-5-mini`（低价档，按量计费） | `gpt-5.5`（旗舰档，明显更贵） | platform.openai.com |
+| 其他兼容服务 | 自定义 | 服务商给的 Base URL（通常带 `/v1`） | 服务商给的入门模型 ID | 服务商给的旗舰模型 ID | 服务商控制台 |
+
+> **「免费」要说清楚**：表里 Flash / mini 档不是统一免费；智谱部分 Flash 模型可免费调用，DeepSeek/OpenAI 的低价档也是**按量计费，只是单价低**。想用旗舰/推理模型，必须先到服务商控制台确认余额、模型名和价格，别直接照抄网上的旧教程。模型名会变，**一律以控制台「模型概览 / 模型列表」里能复制的模型编码为准**。
+
+**付费/高强度模型的额外设置**（用户明确要更强效果时再做）：
+1. 在「AI 与对话」域找到「深度思考」：选「开启深度思考」；思考强度按需要选低/高/最大。
+2. 「最大输出 Token」建议调到 `8192` 以上；思考过程也计入输出，太小会被截断。
+3. 旗舰模型更慢、更贵；先让用户设好服务商账单/余额上限，再测试连接。
+4. 视觉模型（「看看屏幕」）是另一条配置：设置里「视觉模型复用聊天模型」默认开；若聊天换成不支持视觉的付费模型，要单独填视觉模型地址与模型 ID（如智谱 `glm-4.6v-flash`），否则「看看屏幕」会失败。
 
 **✅ 成功标准**：新 provider 出现在「API 列表」下拉里；选中它时「测试连接」成功；关窗后卡4 的对话验收仍能通过。
 
@@ -308,7 +316,7 @@ Key 已经拿到了。请你操作桌宠界面把它填进去并验证，Key 让
 | 请求超时 | 60 秒 |
 | 最大输出 Token | 2048 |
 
-如果用户明确要用其他 OpenAI 兼容服务（DeepSeek、OpenAI 等），只改 Base URL / 模型 / Key，**不要改其他字段**。
+如果用户明确要用其他 OpenAI 兼容服务（DeepSeek、OpenAI、智谱旗舰档等），按卡4.5 添加 provider，只改 Provider 名称 / Base URL / 模型 / Key；选高强度付费模型时再按卡4.5 的「付费/高强度模型的额外设置」调深度思考与最大输出 Token。**不要改 chat_path、超时等默认字段**；模型名一律以服务商控制台当前编码为准。
 
 ## 附录C · 版本与提醒
 
