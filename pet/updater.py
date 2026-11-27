@@ -353,6 +353,123 @@ def download_asset(
     raise RuntimeError('；'.join(errors) or '没有可用的下载地址')
 
 
+def select_portable_archive(release: dict) -> dict | None:
+    """选便携 zip 资产（带 size + sha256 才可用）。
+
+    便携版没有 Inno Setup 安装包，一键更新走「下载 zip → 校验 → 解压到暂存
+    → 独立脚本替换程序目录」。资产名以 ``-portable.zip`` 结尾，摘要可由
+    manifest 的 sha256 或 GitHub 的 digest 提供。
+    """
+    if not isinstance(release, dict):
+        return None
+    details = release.get('asset_details') or {}
+    for name, item in details.items():
+        if str(name).lower().endswith('.zip') and item.get('size') is not None and item.get('sha256'):
+            return item
+    return None
+
+
+def stage_portable_update(asset: dict, config_dir: str | os.PathLike, *,
+                          timeout: float = 60.0,
+                          progress: Callable[[int, int | None], None] | None = None) -> Path:
+    """下载并解压便携包到暂存目录，返回解压后的程序根目录（含 exe）。
+
+    只写 ``%APPDATA%/wanzhou-pet/updates/staging``，绝不碰正在运行的程序目录。
+    真正的目录替换由独立脚本在桌宠全部退出后完成。
+    """
+    import zipfile
+
+    cache = update_cache_dir(config_dir)
+    staging = cache / 'staging'
+    staging.mkdir(parents=True, exist_ok=True)
+    archive = download_asset(asset, cache, timeout=timeout, progress=progress)
+    # 每次更新前清空 staging，避免旧版本残留混进新目录。
+    for child in staging.iterdir():
+        if child.is_dir():
+            import shutil
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink(missing_ok=True)
+    with zipfile.ZipFile(archive) as bundle:
+        # 防 zip-slip：只接受解压后仍在 staging 内的条目。
+        for member in bundle.namelist():
+            target = (staging / member).resolve()
+            if not str(target).startswith(str(staging.resolve()) + os.sep) and target != staging.resolve():
+                raise RuntimeError(f'更新包包含越界路径：{member}')
+        bundle.extractall(staging)
+    root = staging / 'wanzhou-pet'
+    if not (root / 'wanzhou-pet.exe').is_file():
+        raise RuntimeError('更新包缺少 wanzhou-pet.exe，已停止')
+    return root
+
+
+def _ps_quote(value: object) -> str:
+    """PowerShell 单引号字符串转义（路径里的单引号 doubled）。"""
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def write_portable_update_script(staged_root: str | os.PathLike,
+                                 app_dir: str | os.PathLike, *,
+                                 config_dir: str | os.PathLike) -> Path:
+    """生成独立 PowerShell 脚本：等桌宠退出 → 备份旧目录 → 就位新版 → 重启。
+
+    脚本放在系统临时目录，**不在被替换的程序目录里**，否则替换时会把脚本自己
+    删掉。备份目录保留到新版本启动成功后才清理，失败则回滚。
+    """
+    staged = Path(staged_root).resolve()
+    target = Path(app_dir).resolve()
+    log = update_cache_dir(config_dir) / 'portable-update.log'
+    backup = target.with_name(f'{target.name}.bak-{int(time.time())}')
+    script = Path(tempfile.gettempdir()) / f'wanzhou-update-{os.getpid()}.ps1'
+    ps = f"""$ErrorActionPreference = 'Stop'
+$target = {_ps_quote(str(target))}
+$staged = {_ps_quote(str(staged))}
+$backup = {_ps_quote(str(backup))}
+$log = {_ps_quote(str(log))}
+# 日志目录可能还不存在（首次更新 / 状态文件被清理过），先建再写。
+$logDir = Split-Path -Parent $log
+if (-not (Test-Path $logDir)) {{ New-Item -ItemType Directory -Path $logDir -Force | Out-Null }}
+function W($m) {{ Add-Content -Path $log -Value ((Get-Date).ToString('o') + ' ' + $m) -Encoding utf8 }}
+try {{
+  W 'update script started'
+  # 等旧进程自己收尾 3 秒，再强制结束残留；只认本产品进程名。
+  Start-Sleep -Seconds 3
+  Get-Process -Name 'wanzhou-pet' -ErrorAction SilentlyContinue | Stop-Process -Force
+  Start-Sleep -Seconds 1
+  if (Test-Path $backup) {{ Remove-Item -LiteralPath $backup -Recurse -Force }}
+  Move-Item -LiteralPath $target -Destination $backup
+  try {{
+    Move-Item -LiteralPath $staged -Destination $target
+    Start-Process -FilePath (Join-Path $target 'wanzhou-pet.exe') -WorkingDirectory $target
+    Start-Sleep -Seconds 3
+    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
+    W 'update OK'
+  }} catch {{
+    if ((Test-Path $backup) -and -not (Test-Path $target)) {{
+      Move-Item -LiteralPath $backup -Destination $target
+      W 'rolled back'
+    }}
+    throw
+  }}
+}} catch {{
+  W ('FAILED: ' + $_.Exception.Message)
+  exit 1
+}}
+"""
+    script.write_text(ps, encoding='utf-8-sig')  # BOM：让 Windows PowerShell 正确读中文路径
+    return script
+
+
+def start_portable_update(script: str | os.PathLike) -> None:
+    """以脱离父进程的方式启动更新脚本；父进程随后即可退出。"""
+    flags = getattr(subprocess, 'DETACHED_PROCESS', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+    subprocess.Popen(
+        ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(script)],
+        cwd=str(Path(script).parent), close_fds=True, creationflags=flags,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+
+
 def can_auto_install() -> bool:
     """仅冻结的 Windows 安装版允许自动拉起安装器。"""
     return os.name == 'nt' and bool(getattr(__import__('sys'), 'frozen', False))

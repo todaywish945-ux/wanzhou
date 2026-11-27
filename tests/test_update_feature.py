@@ -150,3 +150,35 @@ def test_settings_process_page_deep_link_is_passed(tmp_path, monkeypatch):
     instance = object()
     assert shell.open_settings_process(instance, page="更新") is True
     assert calls == [(instance, "更新")]
+
+
+def test_update_page_enables_install_for_portable_zip(tmp_path, monkeypatch):
+    """便携 zip 有 size/sha256 且是冻结版时，「下载并安装」应可用。"""
+    from pet import updater
+    from pet.config import Config
+    from pet.update_settings import UpdatePage
+
+    _qapp()
+    release = {
+        "version": "9.99",
+        "html_url": "https://github.com/todaywish945-ux/wanzhou/releases/tag/v9.99",
+        "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v9.99/wanzhou-9.99-portable.zip",
+        "notes": "新版",
+        "assets": {},
+        "asset_details": {
+            "wanzhou-9.99-portable.zip": {
+                "name": "wanzhou-9.99-portable.zip",
+                "url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v9.99/wanzhou-9.99-portable.zip",
+                "size": 123,
+                "sha256": "a" * 64,
+            }
+        },
+    }
+    monkeypatch.setattr(updater, "can_auto_install", lambda: True)
+    page = UpdatePage(Config(tmp_path))
+    try:
+        page._on_check_finished(release)
+        assert page.install_button.isEnabled() is True
+        assert "自动替换" in page.status_label.text()
+    finally:
+        page.close()

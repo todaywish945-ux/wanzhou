@@ -337,3 +337,70 @@ def test_select_windows_installer_supports_legacy_and_structured_assets(monkeypa
     asset = updater.select_windows_installer(release, include_chat=False)
     assert asset["name"] == "dsh-pet-standalone-webm-setup.exe"
     assert asset["urls"]
+
+
+def test_select_portable_archive_prefers_zip_with_hash():
+    release = {
+        "assets": {},
+        "asset_details": {
+            "wanzhou-1.01-portable.zip": {
+                "name": "wanzhou-1.01-portable.zip",
+                "url": "https://github.com/x/releases/download/v1.01/wanzhou-1.01-portable.zip",
+                "size": 405255681,
+                "sha256": "a" * 64,
+            },
+            "broken.zip": {"name": "broken.zip", "url": "https://x/broken.zip", "size": None, "sha256": None},
+        },
+    }
+    picked = updater.select_portable_archive(release)
+    assert picked is not None
+    assert picked["name"] == "wanzhou-1.01-portable.zip"
+    assert updater.select_portable_archive({"asset_details": {}}) is None
+
+
+def test_write_portable_update_script_backs_up_and_restarts(tmp_path):
+    staged = tmp_path / "staging" / "wanzhou-pet"
+    staged.mkdir(parents=True)
+    (staged / "wanzhou-pet.exe").write_bytes(b"MZ")
+    app_dir = tmp_path / "app" / "wanzhou-pet"
+    app_dir.mkdir(parents=True)
+
+    script = updater.write_portable_update_script(staged, app_dir, config_dir=tmp_path)
+    text = script.read_text(encoding="utf-8-sig")
+    assert "Move-Item" in text and "wanzhou-pet.exe" in text
+    assert "Stop-Process" in text  # 先结束旧桌宠，避免文件占用
+    assert "Start-Process" in text  # 再拉起新版
+    assert ".bak-" in text          # 备份而非直接删除
+    assert "rolled back" in text    # 失败可回滚
+    assert str(app_dir).replace("\\", "/") in text.replace("\\", "/")
+    assert script.name.startswith("wanzhou-update-")
+
+
+def test_stage_portable_update_rejects_zip_slip(monkeypatch, tmp_path):
+    import io
+    import zipfile
+
+    asset = {
+        "name": "wanzhou-1.01-portable.zip",
+        "url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip",
+        "size": None,
+        "sha256": "b" * 64,
+    }
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("../escape.txt", "bad")
+    payload = buf.getvalue()
+    asset["size"] = len(payload)
+    import hashlib
+    asset["sha256"] = hashlib.sha256(payload).hexdigest()
+
+    class Response(io.BytesIO):
+        headers = {"Content-Length": str(len(payload))}
+
+    monkeypatch.setattr(updater, "trusted_urlopen", lambda *a, **kw: Response(payload))
+    try:
+        updater.stage_portable_update(asset, tmp_path)
+    except RuntimeError as exc:
+        assert "越界路径" in str(exc)
+    else:
+        raise AssertionError("zip-slip 未被拒绝")

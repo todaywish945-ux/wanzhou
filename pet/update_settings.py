@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from pathlib import Path
 
 from PySide6.QtCore import QTimer, QUrl, Qt, Signal
 from PySide6.QtGui import QDesktopServices
@@ -154,7 +155,10 @@ class UpdatePage(QWidget):
             self._set_state(f"已经是最新版本（v{__version__}）。", checking=False)
             self.notes_label.setText("当前没有可用更新。")
             return
-        asset = updater.select_windows_installer(result, include_chat=self.include_chat)
+        # 便携包优先：有带 sha256 的 zip 就能一键更新（下载→校验→独立脚本替换
+        # 目录→重启三只）；没有再退回 Inno Setup 安装包。两者都不满足才禁用。
+        asset = updater.select_portable_archive(result) or updater.select_windows_installer(
+            result, include_chat=self.include_chat)
         notes = str(result.get("notes") or "暂无版本说明。")
         # 开源版没有安装包时，下载入口就是网盘直链；提取码必须跟着说明走，
         # 否则用户点了「打开下载页」还得回到别处找码。
@@ -168,12 +172,15 @@ class UpdatePage(QWidget):
         self.notes_label.setText(notes)
         integrity_ready = bool(asset and asset.get("size") is not None and asset.get("sha256"))
         self.install_button.setEnabled(integrity_ready and updater.can_auto_install())
+        portable = bool(asset and str(asset.get('name', '')).lower().endswith('.zip'))
         if asset is None:
-            state = f"发现 v{tag}，但没有找到匹配的 Windows 安装包，请打开下载页。"
+            state = f"发现 v{tag}，但没有找到可校验的更新包，请打开下载页手动更新。"
         elif not integrity_ready:
-            state = f"发现 v{tag}，但安装包缺少完整性校验信息，请打开下载页手动更新。"
+            state = f"发现 v{tag}，但更新包缺少完整性校验信息，请打开下载页手动更新。"
         elif not updater.can_auto_install():
-            state = f"发现 v{tag}。当前运行方式不支持自动安装，请打开下载页手动更新。"
+            state = f"发现 v{tag}。当前运行方式不支持自动更新，请打开下载页手动更新。"
+        elif portable:
+            state = f"发现新版本 v{tag}，点「下载并安装」会校验压缩包、自动替换并重启三只桌宠。"
         else:
             state = f"发现新版本 v{tag}，点「下载并安装」后会校验文件并启动安装程序。"
         self._set_state(state, checking=False)
@@ -192,14 +199,23 @@ class UpdatePage(QWidget):
         self.progress.show()
         self._set_state("正在下载更新…", checking=False)
 
+        portable = bool(str(asset.get('name', '')).lower().endswith('.zip'))
+
         def worker() -> None:
             try:
-                path = updater.download_asset(
-                    asset,
-                    updater.update_cache_dir(self.config.dir),
-                    progress=lambda current, total: self.download_progress.emit(current, total or 0),
-                )
-                self.download_finished.emit(path)
+                if portable:
+                    # 下载 + 校验 + 解压到暂存目录；不碰正在运行的程序目录。
+                    result = updater.stage_portable_update(
+                        asset, self.config.dir,
+                        progress=lambda current, total: self.download_progress.emit(current, total or 0),
+                    )
+                else:
+                    result = updater.download_asset(
+                        asset,
+                        updater.update_cache_dir(self.config.dir),
+                        progress=lambda current, total: self.download_progress.emit(current, total or 0),
+                    )
+                self.download_finished.emit(result)
             except Exception as exc:  # noqa: BLE001
                 logging.exception("下载更新失败")
                 self.download_finished.emit(exc)
@@ -221,12 +237,24 @@ class UpdatePage(QWidget):
             self._set_state(f"下载或校验失败：{result}", checking=False)
             return
         try:
-            updater.start_installer(result)
+            if str(result.name).lower().endswith('.zip') and result.parent.name == 'staging':
+                # 便携包：写独立脚本（不在程序目录里），脚本等桌宠退出后替换目录。
+                import sys
+                app_dir = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else None
+                if app_dir is None or not (app_dir / 'wanzhou-pet.exe').is_file():
+                    raise RuntimeError('当前不是冻结便携版，无法自动替换程序目录')
+                script = updater.write_portable_update_script(
+                    result, app_dir, config_dir=self.config.dir)
+                updater.start_portable_update(script)
+                message = "更新已准备好：桌宠将自动关闭、替换文件并重新启动。"
+            else:
+                updater.start_installer(result)
+                message = "安装器已启动，按提示完成安装即可（桌宠会被自动关闭）。"
         except Exception as exc:  # noqa: BLE001
             self.install_button.setEnabled(True)
-            self._set_state(f"无法启动安装器：{exc}", checking=False)
+            self._set_state(f"无法启动更新：{exc}", checking=False)
             return
-        self._set_state("安装器已启动，按提示完成安装即可（桌宠会被自动关闭）。", checking=False)
+        self._set_state(message, checking=False)
         self.install_button.setEnabled(False)
         self.window().close()
 
