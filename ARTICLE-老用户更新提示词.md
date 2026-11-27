@@ -43,7 +43,11 @@ API 返回的版本若主版本号大于 1（例如遗留的 v4.4.x）请忽略�
 - 若按钮是灰的，或我装的是 v1.00 / v1.01：这些老客户端只认旧的 exe 安装包，一键更新用不了，走手动更新（第五步）。
 
 【第五步 · 手动更新（仅当一键更新不可用）】
-1. 下载清单里的 download_url（zip 直链）到我的下载文件夹。国内慢就在链接前加 https://gh-proxy.com/ 镜像前缀。必须真的发出下载请求，不许说「找不到包」。
+1. 下载清单里的 download_url 到我的下载文件夹。**默认走国内镜像**（GitHub 直链在国内基本连不上，浏览器会报「无法下载 - 网络问题」）：把 download_url 完整拼到镜像前缀后面，按顺序试，哪个通用哪个：
+   - https://gh-proxy.com/ + download_url（实测可用）
+   - https://ghproxy.net/ + download_url
+   - download_url 原样（仅前两条都失败时才试）
+   不要让我自己去点浏览器里的 GitHub 直链下载。必须真的发出下载请求，不许说「找不到包」。
 2. 校验：Get-Item 看 Length 是否等于清单的 size，Get-FileHash -Algorithm SHA256 是否等于清单的 sha256。不一致就停下，告诉我，不要解压。这一步静默做，不用把哈希念给我。
 3. 关掉正在跑的桌宠（结束所有 wanzhou-pet.exe 进程）。
 4. 解压 zip 到程序目录（例如 %USERPROFILE%\wanzhou-pet\），让 wanzhou-pet.exe 和 _internal\ 在同一层。旧的程序文件会被覆盖——这正是更新。
