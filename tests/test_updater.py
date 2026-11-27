@@ -426,3 +426,36 @@ def test_latest_release_picks_highest_version_across_stale_mirrors(monkeypatch):
     monkeypatch.setattr(updater, "trusted_urlopen", fake_urlopen)
     release = updater.latest_release()
     assert release["version"] == "1.03"
+
+
+def test_force_check_bypasses_12h_window_but_dedupes_concurrent_starts(tmp_path):
+    """启动时强制检查：12 小时窗口没到也能查；但 60 秒窗口防三进程重复查。"""
+    now = 1_000_000.0
+    updater.mark_auto_check(tmp_path, now=now)
+
+    # 30 分钟后：12 小时窗口没到，普通定时检查跳过
+    assert updater.auto_check_due(tmp_path, now=now + 30 * 60) is False
+    # 但 60 秒强制窗口已过 → 启动强制检查会真查
+    assert updater.auto_check_due(tmp_path, now=now + 30 * 60, interval=60) is True
+
+    # 3 秒后另一只进程启动：60 秒窗口还没过 → 跳过（三进程只查一次）
+    updater.mark_auto_check(tmp_path, now=now + 30 * 60)
+    assert updater.auto_check_due(tmp_path, now=now + 30 * 60 + 3, interval=60) is False
+
+
+def test_latest_release_prefers_fresh_mirror_when_versions_tie(monkeypatch):
+    """同版本但缓存不同步时，取 download_url 带镜像的那份（内容更新鲜）。"""
+    import io
+
+    def fake_urlopen(request, *args, **kwargs):
+        url = request.full_url if hasattr(request, "full_url") else str(request)
+        if "cdn.jsdelivr.net" in url:
+            dl = "https://github.com/x/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip"
+        else:  # raw 等其它源：同版本但清单已更新为镜像
+            dl = "https://gh-proxy.com/https://github.com/x/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip"
+        return io.BytesIO(json.dumps({"version": "1.03", "download_url": dl}).encode())
+
+    monkeypatch.setattr(updater, "trusted_urlopen", fake_urlopen)
+    release = updater.latest_release()
+    assert release["version"] == "1.03"
+    assert "gh-proxy" in release["download_url"]
