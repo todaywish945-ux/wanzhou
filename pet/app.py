@@ -4222,10 +4222,13 @@ class AppShell:
 
     # ------------------------------------------------------------ 自动更新
     def _install_auto_update_check(self) -> None:
-        """启动后 10 秒查一次，之后每 30 分钟看是否到了 12 小时窗口。
+        """启动后 10 秒**强制**查一次（不受 12 小时间隔限制），之后每 30 分钟
+        看是否到了 12 小时窗口。
 
-        真正的网络请求由共享状态文件把关：三只桌宠同时启动也只有一只会查，
-        用户长开不重启也能在半天内收到新版本通知。
+        为什么启动强制：发版后用户可能刚查过旧版，12 小时间隔会把新版通知
+        压到半天后；重启是最自然的"我要看最新"信号，必须真查一次。
+        三进程并发仍靠共享状态文件去重——强制检查用 60 秒窗口，只有第一只
+        真发请求，另两只看到刚 mark 的时间就跳过。
         """
         if getattr(self, "_auto_update_timer", None) is not None:
             return
@@ -4237,9 +4240,9 @@ class AppShell:
         timer.timeout.connect(self._start_auto_update_check)
         timer.start()
         self._auto_update_timer = timer
-        QTimer.singleShot(10 * 1000, self._start_auto_update_check)
+        QTimer.singleShot(10 * 1000, lambda: self._start_auto_update_check(force=True))
 
-    def _start_auto_update_check(self) -> None:
+    def _start_auto_update_check(self, force: bool = False) -> None:
         if getattr(self, "_auto_update_checking", False):
             return
         config_dir = getattr(self.config, "dir", None)
@@ -4248,7 +4251,10 @@ class AppShell:
         try:
             if not updater.auto_check_enabled(config_dir):
                 return
-            if not updater.auto_check_due(config_dir):
+            # 强制检查用 60 秒窗口去重：三进程同时启动只查一次；
+            # 定时检查仍走 12 小时窗口。
+            interval = 60 if force else updater.AUTO_CHECK_INTERVAL_SECONDS
+            if not updater.auto_check_due(config_dir, interval=interval):
                 return
             # 先占住时间窗再发请求：并发启动时另一只进程看到的已经是"查过了"。
             updater.mark_auto_check(config_dir)
