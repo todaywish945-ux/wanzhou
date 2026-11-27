@@ -4,15 +4,15 @@
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
   "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip",
   "download_code": "",
-  "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布，新用户开箱即有，老用户已有台词不受影响。",
+  "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布；修复 CDN 缓存导致新版通知延迟。",
   "assets": {
     "wanzhou-1.03-portable.zip": {
       "fileName": "wanzhou-1.03-portable.zip",
       "urls": [
         "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip"
       ],
-      "size": 454272308,
-      "sha256": "91acafea2663ec79c281c2a256a618b3b737b8e1a12925011e67f8a8ebf16de8",
+      "size": 454271354,
+      "sha256": "913b33279cfb3c85da0853828133eccc880d27dbd90c880ade25ba5aa6cd0be0",
       "platform": "windows",
       "kind": "portable"
     }
