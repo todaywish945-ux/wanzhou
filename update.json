@@ -4,15 +4,15 @@
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
   "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip",
   "download_code": "",
-  "notes": "v1.00 首发：三只桌宠独立进程，双击 exe 同时出现；含碰撞、AI 对话、自动更新通知。便携版无需安装，解压即用。",
+  "notes": "v1.00 首发：三只桌宠独立进程，双击 exe 同时出现；含碰撞、AI 对话、自动更新通知。便携版无需安装，解压即用。修复开机自启只出一只的问题。",
   "assets": {
     "wanzhou-1.00-portable.zip": {
       "fileName": "wanzhou-1.00-portable.zip",
       "urls": [
         "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip"
       ],
-      "size": 405253253,
-      "sha256": "7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0",
+      "size": 405257198,
+      "sha256": "a8b0cb0c6ac1f961672f4907102c5ad539d4050b5b70dcaa0737e97055692752",
       "platform": "windows",
       "kind": "portable"
     }
