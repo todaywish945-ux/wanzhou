@@ -1,1 +1,41 @@
-a
+{
+  "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
+  "version": "1.02",
+  "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
+  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip",
+  "download_code": "",
+  "notes": "v1.02：新增一键更新（下载校验后自动替换并重启三只桌宠）；更新说明不再显示 Markdown 符号，下载入口指向压缩包直链。便携版解压双击 wanzhou-pet.exe 即可。",
+  "assets": {
+    "wanzhou-1.02-portable.zip": {
+      "fileName": "wanzhou-1.02-portable.zip",
+      "urls": [
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip"
+      ],
+      "size": 405259487,
+      "sha256": "c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7",
+      "platform": "windows",
+      "kind": "portable"
+    }
+  },
+  "_asset_example": {
+    "wanzhou-<版本>-portable.zip": {
+      "fileName": "wanzhou-<版本>-portable.zip",
+      "urls": [
+        "https://github.com/<仓库>/releases/download/v<版本>/wanzhou-<版本>-portable.zip"
+      ],
+      "size": "由脚本自动写入",
+      "sha256": "由 scripts/make_update_manifest.py --archive 自动算",
+      "platform": "windows",
+      "kind": "portable"
+    }
+  },
+  "_publish_steps": [
+    "1. 改版本号：pet/__init__.py 的 __version__ 必须与本文件 version 一致（都不带 v）。",
+    "2. 装构建依赖（venv\\Scripts\\python.exe -m pip install -r scripts/requirements-build.txt），跑 powershell -ExecutionPolicy Bypass -File scripts/build_onedir.ps1，产出 dist/wanzhou-<版本>-portable.zip；里面是 wanzhou-pet\\ 目录，双击 wanzhou-pet.exe 会拉起 slot 1/2/3 三个进程，三只桌宠一起出现。",
+    "3. 把代码推到 main，在 GitHub 建 v<版本> Release，把 dist/wanzhou-<版本>-portable.zip 作为附件上传（GitHub Release 单文件上限 2 GiB）。",
+    "4. 跑 python scripts/make_update_manifest.py --version <版本> --notes '本次更新说明' --download-url 'https://github.com/todaywish945-ux/wanzhou/releases/download/v<版本>/wanzhou-<版本>-portable.zip' --archive dist/wanzhou-<版本>-portable.zip 写回清单；本项目 download_code 留空，不用提取码。",
+    "5. 把本文件提交到 main 分支根目录；jsDelivr 首次同步可能要几分钟。老用户每 12 小时（启动后 10 秒 + 运行中定时）读一次本文件，发现新版本会弹可点击通知，点开更新窗即可一键更新。",
+    "6. 自检：download_url 必须是 https；assets 里是带 size / sha256 的便携 zip（kind=portable），客户端据此启用『下载并安装』一键更新（下载校验→独立脚本替换程序目录→重启三只）；没有校验信息时才降级为『打开下载页』手动更新。",
+    "7. 只有一键更新才需要 size / sha256 + 可信域名白名单；没有校验值时仍写入清单作为完整性记录，但按钮禁用。"
+  ]
+}
