@@ -265,7 +265,11 @@ def version_parts(tag: str) -> list[int]:
     return out
 
 
-def is_newer(latest_tag: str, current: str = APP_VERSION) -> bool:
+def is_newer(latest_tag: str, current: str | None = None) -> bool:
+    # 默认参数不能在定义时绑定 APP_VERSION：那样模块加载后改版本（测试注入、
+    # 运行期热替换）会读到旧值，版本判断永远用启动那一刻的版本。
+    if current is None:
+        current = APP_VERSION
     return version_parts(latest_tag) > version_parts(current)
 
 
