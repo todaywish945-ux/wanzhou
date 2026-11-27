@@ -41,10 +41,14 @@ _UPDATE_JSON_URLS = (
     f'https://cdn.jsdelivr.net/gh/{REPO}@main/update.json',
     f'https://fastly.jsdelivr.net/gh/{REPO}@main/update.json',
     f'https://gcore.jsdelivr.net/gh/{REPO}@main/update.json',
+    # GitHub 官方直链：jsDelivr 各节点缓存刷新可能滞后几十分钟（实测发版
+    # 5 分钟后三条镜像仍返回旧版），raw 是同一个文件的实时源，作为兜底。
+    f'https://raw.githubusercontent.com/{REPO}/main/update.json',
 )
 _USER_AGENT = 'dsh-pet-standalone-updater'
 _TRUSTED_ASSET_HOSTS = {
     'github.com',
+    'raw.githubusercontent.com',
     'objects.githubusercontent.com',
     'github-releases.githubusercontent.com',
     'release-assets.githubusercontent.com',
@@ -240,14 +244,21 @@ def latest_release(timeout: float = 5.0) -> dict | None:
     """多源查询最新版本信息（静态清单优先，GitHub API 兜底）。
 
     清单是发版时人工确认过的版本真源；GitHub 上遗留的 v4.4.x 是移植前
-    上游的 Tag，不能被当成"新版本"推给 1.00 的用户。只有清单三条镜像
-    都取不到时，才退到 API 并把它当作最后线索。
+    上游的 Tag，不能被当成"新版本"推给 1.00 的用户。只有清单四条源
+    （jsDelivr 三条 + GitHub raw）都取不到时，才退到 API 当作最后线索。
     """
+    # 收集全部镜像的解析结果，取版本最高的。早期「第一条成功就返回」在
+    # jsDelivr 节点缓存不同步时会读到旧版（实测三条镜像都停在 1.01、而
+    # raw 直链已是 1.03），导致新版本推不出去。raw 兜底 + 取最高版本两者
+    # 缺一不可：raw 实时但可能被墙，最高版本保证任何一条拿到新版都生效。
+    releases: list[dict] = []
     for url in _UPDATE_JSON_URLS:
         data = _fetch_json(url, timeout)
         result = _release_from_payload(data) if isinstance(data, dict) else None
         if result is not None:
-            return result
+            releases.append(result)
+    if releases:
+        return max(releases, key=lambda release: version_parts(str(release.get("version", ""))))
     data = _fetch_json(RELEASE_API, timeout)
     return _release_from_github_payload(data) if isinstance(data, dict) else None
 

@@ -404,3 +404,25 @@ def test_stage_portable_update_rejects_zip_slip(monkeypatch, tmp_path):
         assert "越界路径" in str(exc)
     else:
         raise AssertionError("zip-slip 未被拒绝")
+
+
+def test_latest_release_picks_highest_version_across_stale_mirrors(monkeypatch):
+    """CDN 节点缓存不同步时，客户端必须取镜像中的最高版本，不能被旧版卡住。
+
+    回归：v1.03 发布后 jsDelivr 三条镜像仍返回 1.01，早期「第一条成功就
+    返回」的实现会让用户永远收不到新版通知。
+    """
+    import io
+
+    def fake_urlopen(request, *args, **kwargs):
+        url = request.full_url if hasattr(request, "full_url") else str(request)
+        version = "1.01" if "jsdelivr.net" in url else "1.03"
+        return io.BytesIO(json.dumps({
+            "version": version,
+            "notes": f"version from {version}",
+            "download_url": f"https://github.com/x/wanzhou/releases/download/v{version}/wanzhou-{version}-portable.zip",
+        }).encode())
+
+    monkeypatch.setattr(updater, "trusted_urlopen", fake_urlopen)
+    release = updater.latest_release()
+    assert release["version"] == "1.03"
