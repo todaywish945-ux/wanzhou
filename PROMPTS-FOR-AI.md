@@ -83,7 +83,12 @@
    - **清单全取不到才用兜底值**：version `1.03`、下载 `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip`、大小 `454272201`、SHA-256 `f37cd4ca948625896be7fb6250d2da90808856fd42f1cedf66a14d1c0efcf4b9`（这些值是 2026-11-27 核对过的，可能已过期，仅应急）。
    - 清单里若 `expectSize` / `expectSha` 为空 → 停下告诉我，不要用没校验的包。
 2. 下载到用户下载文件夹。**必须真的发出下载请求并贴出原始输出**（`Invoke-WebRequest` / `curl.exe -L` / 浏览器下载均可）；**没试过就说「找不到包」属于编造**：
-   - 首选第 1 步清单里的 `$url`；国内慢就在它前面加 `https://gh-proxy.com/` 镜像前缀。
+   - **默认走国内镜像**（GitHub 直链在国内经常连不上，浏览器会报「无法下载 - 网络问题」）：把清单里的 `$url` 完整拼到镜像前缀后面。按顺序试，哪个通用哪个：
+     1. `https://gh-proxy.com/` + `$url`（实测可用，约 3.8 MB/s）
+     2. `https://ghproxy.net/` + `$url`
+     3. `$url` 原样（GitHub 直链，仅当前两条都失败时才试）
+   - 镜像地址示例：`https://gh-proxy.com/` + `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip`
+   - **不要让用户自己去点浏览器里的 GitHub 直链下载**——那条路在国内基本不通。
    - Release 页（看附件和发布日期）：`https://github.com/todaywish945-ux/wanzhou/releases/tag/v$ver`
    - 三条都失败 → 把**每条的原始报错**贴给我，并说清你的网络环境（能否访问 github.com），再让我决定；不要替我编「作者还没发布」的理由。
    - 下载后的文件名统一记为 `$zip`（用 `$url` 末尾的文件名）。
