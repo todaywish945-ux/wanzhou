@@ -7,7 +7,7 @@
 >
 > **能力自检（收到本指令后第一步，必须做）**：这份指令要求你**真实操作这台电脑**——能运行 PowerShell 命令、能读写用户磁盘、能联网下载文件。开始之前先确认你确实具备这些能力。如果做不到（例如你是纯网页聊天助手、运行在沙箱里碰不到用户文件系统或网络），**立刻停下并如实说一句**：「我无法操作你的电脑，请把这份指令发给有电脑控制能力的 AI 助手（如 WorkBuddy / Claude Code / Codex 等）」。**不许假装做环境体检、不许假装翻过文件夹、不许编造作者的进度汇报、不许说下载页不存在**——这些都会误导用户。
 >
-> **发布事实（不要臆测）**：v1.02 已于 2026-11-27 公开发布，Release `v1.02` 的附件 `wanzhou-1.02-portable.zip`（405,259,487 字节）可直接下载，直链见阶段 1。任何「作者还没发布 / 预计下周末上线 / 网上没有可用下载页」的说法都是错的。
+> **发布事实（不要臆测）**：项目已公开发布且在持续更新。**最新版以阶段 1 读到的 `update.json` 为准**（本指令编写时是 v1.02，2026-11-27 发布）；写死的版本/直链/校验值只是清单取不到时的兜底，可能已过期。任何「作者还没发布 / 预计下周末上线 / 网上没有可用下载页」的说法都是错的。
 >
 > 本提示词按 v1.02 真实发布物与源码核对：Release 附件、`packaging/pet_entry.py` 启动器、右键菜单、`%APPDATA%\wanzhou-pet\config.json`、`pet/chat/models.py`、`pet/tts/`。
 >
@@ -56,24 +56,49 @@
 
 ## 阶段 1 · 下载便携包、解压并启动三只桌宠
 
-**任务**：下载 v1.02 便携包 → 校验 → 解压到英文路径 → 启动器拉起三只。
+**任务**：**先读出当前最新版信息** → 下载 → 校验 → 解压到英文路径 → 启动器拉起三只。
 
-1. 下载到用户下载文件夹（三个链接是同一个文件，按顺序试，哪个通用哪个）。**必须真的发出下载请求并贴出原始输出**（`Invoke-WebRequest` / `curl.exe -L` / 浏览器下载均可）；**没试过就说「找不到包」属于编造**：
-   - 主链接（GitHub 直连）：`https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip`
-   - 国内加速：`https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip`
-   - 备用镜像：`https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip`
-   - Release 页（可直接看到附件和发布日期）：`https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.02`
-   - 三条都失败 → 把**每条的原始报错**贴给我，并说清你的网络环境（能否访问 github.com），再让我决定；不要替我编「作者还没发布」的理由。
-2. PowerShell 校验（必须做）：
+> **版本号不要写死在本指令里**：以仓库根 `update.json` 为真源，它同时给出最新 `version` / `download_url` / 资产的 `size` 与 `sha256`。作者发新版只改清单，本指令永久有效。下面的写死值只是清单全取不到时的兜底。
+
+1. **先读清单拿最新信息**（按顺序试，哪个通哪个；必须贴出你实际拿到的 version/url/size/sha256）：
    ```powershell
-   $zip = "$env:USERPROFILE\Downloads\wanzhou-1.02-portable.zip"
+   $urls = @(
+     'https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json',
+     'https://fastly.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json',
+     'https://gcore.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json',
+     'https://raw.githubusercontent.com/todaywish945-ux/wanzhou/main/update.json'
+   )
+   $manifest = $null
+   foreach ($u in $urls) {
+     try {
+       $m = Invoke-RestMethod -Uri $u -TimeoutSec 15
+       if ($m.version -and $m.download_url) { $manifest = $m; Write-Output "清单来源: $u"; break }
+     } catch { Write-Output "失败 $u : $($_.Exception.Message)" }
+   }
+   if ($manifest) {
+     $ver = $manifest.version
+     $url = $manifest.download_url
+     # 资产字段是 fileName（不是 name），按它找便携 zip。
+     $asset = $manifest.assets.PSObject.Properties.Value | Where-Object { $_.fileName -like '*portable.zip' -or $_.name -like '*portable.zip' } | Select-Object -First 1
+     $expectSize = $asset.size
+     $expectSha  = $asset.sha256
+     Write-Output "最新版 v$ver / $url / $expectSize / $expectSha"
+   }
+   ```
+   - **清单全取不到才用兜底值**：version `1.02`、下载 `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip`、大小 `405259487`、SHA-256 `c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7`（这两个值是 2026-11-27 核对过的，可能已过期，仅应急）。
+   - 清单里若 `expectSize` / `expectSha` 为空 → 停下告诉我，不要用没校验的包。
+2. 下载到用户下载文件夹。**必须真的发出下载请求并贴出原始输出**（`Invoke-WebRequest` / `curl.exe -L` / 浏览器下载均可）；**没试过就说「找不到包」属于编造**：
+   - 首选第 1 步清单里的 `$url`；国内慢就在它前面加 `https://gh-proxy.com/` 镜像前缀。
+   - Release 页（看附件和发布日期）：`https://github.com/todaywish945-ux/wanzhou/releases/tag/v$ver`
+   - 三条都失败 → 把**每条的原始报错**贴给我，并说清你的网络环境（能否访问 github.com），再让我决定；不要替我编「作者还没发布」的理由。
+   - 下载后的文件名统一记为 `$zip`（用 `$url` 末尾的文件名）。
+3. PowerShell 校验（必须做，期望值来自第 1 步清单，不是写死的数）：
+   ```powershell
    Get-Item $zip | Select-Object FullName,Length
    Get-FileHash -Algorithm SHA256 $zip
    ```
-   期望大小：`405259487` 字节
-   期望 SHA-256：`c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7`
-   不一致就停下，不要解压。
-3. 解压（纯英文路径，推荐用户目录）：
+   把实际 Length / Hash 与第 1 步的 `$expectSize` / `$expectSha` 比对；不一致就停下，不要解压。
+4. 解压（纯英文路径，推荐用户目录）：
    ```powershell
    $dest = "$env:USERPROFILE\wanzhou-pet"
    Expand-Archive -Path $zip -DestinationPath $dest -Force
@@ -84,7 +109,7 @@
    $dest\wanzhou-pet\_internal\
    ```
    **exe 必须和 `_internal` 在同一层**，不能单独移动 exe。
-4. 启动：
+5. 启动：
    ```powershell
    Start-Process -FilePath "$dest\wanzhou-pet\wanzhou-pet.exe"
    ```
@@ -94,7 +119,7 @@
      Select-Object ProcessId,CommandLine
    ```
    应看到三条带 `--slot 1/2/3` 的命令行。
-5. 视觉确认：
+6. 视觉确认：
    **【需要你操作】** 请现在看桌面：是不是同时出现三只 Q 版桌宠（德蕾琪娜、林德薇恩、艾尔妲）？看到了回复「看到了」，否则回复「没看到」。
    - 你有截图能力就自己先看，没能力就用上面格式问我。
 
@@ -314,9 +339,10 @@ B 豆包：需Key，音质较好
 
 | 用途 | 路径 / 值 |
 |---|---|
-| Release 页 | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.02` |
-| 直链 | `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip` |
-| zip 大小 / SHA-256 | `405259487` / `c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7` |
+| **版本真源（先读这个）** | `https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json`（含最新版 version / download_url / 资产 size / sha256；4 条镜像见阶段 1） |
+| Release 页（v1.02 兜底） | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.02` |
+| 直链（v1.02 兜底） | `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip` |
+| zip 大小 / SHA-256（v1.02 兜底） | `405259487` / `c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7` |
 | 推荐解压目录 | `%USERPROFILE%\wanzhou-pet` |
 | exe | `%USERPROFILE%\wanzhou-pet\wanzhou-pet\wanzhou-pet.exe` |
 | 必须同目录 | `wanzhou-pet.exe` 与 `_internal\` |
