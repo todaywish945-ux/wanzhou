@@ -4,7 +4,7 @@
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
   "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip",
   "download_code": "",
-  "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布；修复 CDN 缓存导致新版通知延迟。",
+  "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布；修复 CDN 缓存导致新版通知延迟。 若「下载并安装」不可用（旧版本客户端），点「打开下载页」下载 zip，解压后双击 wanzhou-pet.exe 即可，配置不会丢。",
   "assets": {
     "wanzhou-1.03-portable.zip": {
       "fileName": "wanzhou-1.03-portable.zip",
