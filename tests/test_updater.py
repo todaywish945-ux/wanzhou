@@ -57,6 +57,42 @@ def test_latest_release_parses_github_api(monkeypatch):
     assert release["assets"]["a-setup.exe"] == "https://dl/a-setup.exe"
 
 
+def test_github_fallback_strips_markdown_and_uses_zip_download_url(monkeypatch):
+    """Release 兜底：Markdown 正文不能原样进 QLabel，zip 附件要当下载入口。"""
+    import io
+
+    body = (
+        "# 挽昼桌宠 v1.01\n\n"
+        "## 本次更新\n"
+        "- 修复开机自启只出现一只桌宠的问题\n\n"
+        "源码与问题反馈：`https://github.com/x/wanzhou`\n"
+    )
+
+    def fake_ok(*args, **kwargs):
+        payload = json.dumps({
+            "tag_name": "v1.01",
+            "html_url": "https://github.com/x/releases/tag/v1.01",
+            "body": body,
+            "assets": [
+                {"name": "wanzhou-1.01-portable.zip",
+                 "browser_download_url": "https://github.com/x/releases/download/v1.01/wanzhou-1.01-portable.zip"},
+            ],
+        }).encode()
+        return io.BytesIO(payload)
+
+    monkeypatch.setattr(updater, "trusted_urlopen", fake_ok)
+    release = updater.latest_release()
+    assert release["notes"] == (
+        "挽昼桌宠 v1.01\n"
+        "本次更新\n"
+        "· 修复开机自启只出现一只桌宠的问题\n"
+        "源码与问题反馈：https://github.com/x/wanzhou"
+    )
+    assert "#" not in release["notes"]
+    assert "`" not in release["notes"]
+    assert release["download_url"].endswith("wanzhou-1.01-portable.zip")
+
+
 def test_latest_release_falls_back_to_update_json(monkeypatch):
     """静态清单命中即返回，不再打 GitHub API。"""
     import io

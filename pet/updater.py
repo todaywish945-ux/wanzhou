@@ -178,6 +178,31 @@ def _release_from_payload(data: dict) -> dict | None:
     }
 
 
+def _plain_release_notes(markdown: str) -> str:
+    """GitHub Release 正文是 Markdown，更新窗用的是 QLabel——原样塞进去会
+    露出 `#` / `##` / 反引号和链接语法。这里只做展示用的无损降级：去掉标题
+    符号与行内反引号，去掉列表前导符号，链接保留可读文字；不解释、不重写。
+    """
+    text = str(markdown or '')
+    if not text:
+        return ''
+    lines = []
+    for line in text.splitlines():
+        value = line.strip()
+        # Markdown 图片在纯文本里噪声最大，整行丢掉（Release 正文没有关键图）。
+        if value.startswith('!['):
+            continue
+        value = re.sub(r'^#{1,6}\s*', '', value)          # # 标题
+        value = re.sub(r'^[-*+]\s+', '· ', value)          # 无序列表
+        value = re.sub(r'^\d+\.\s+', '', value)            # 有序列表
+        value = value.replace('`', '')                     # 行内代码
+        value = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', value)  # 链接留文字
+        value = re.sub(r'[*_]{1,2}([^*_]+)[*_]{1,2}', r'\1', value)  # 强调
+        if value:
+            lines.append(value)
+    return '\n'.join(lines).strip()
+
+
 def _release_from_github_payload(data: dict) -> dict | None:
     """把 GitHub Releases 的 JSON 折成与静态清单同构的结构。"""
     if not isinstance(data, dict) or not data.get('tag_name'):
@@ -193,12 +218,19 @@ def _release_from_github_payload(data: dict) -> dict | None:
         if a.get('name') and a.get('browser_download_url')
     })
     html_url = str(data.get('html_url') or REPO_URL)
+    # 开源便携包没有 Inno Setup 安装包，兜底时把 zip 附件当下载入口，
+    # 否则用户只拿到 tag 页还得自己找附件。
+    portable_url = ''
+    for name, url in assets.items():
+        if name.lower().endswith('.zip'):
+            portable_url = url
+            break
     return {
         'version': str(data['tag_name']).lstrip('vV'),
         'html_url': html_url,
-        'download_url': html_url,
+        'download_url': portable_url or html_url,
         'download_code': '',
-        'notes': str(data.get('body') or ''),
+        'notes': _plain_release_notes(data.get('body')),
         'assets': assets,
         'asset_details': asset_details,
     }
