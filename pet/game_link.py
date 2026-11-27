@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QTimer
@@ -42,8 +43,15 @@ class GameLink(QObject):
         self._timer.start(1000)
 
     def _event_file(self) -> Path:
-        # 事件文件固定在项目根（旧版 pet.py 同目录协议；骗子酒馆按此路径写入）
-        return Path(__file__).resolve().parent.parent / _EVENT_FILENAME
+        # 联动事件统一在 %APPDATA%/wanzhou-pet/（与骗子酒馆写侧同源，
+        # 打包形态下仓库根不可靠）。源码开发时回退仓库根旧位置。
+        appdata = os.environ.get("APPDATA")
+        base = Path(appdata) if appdata else Path.home()
+        candidate = base / "wanzhou-pet" / _EVENT_FILENAME
+        if candidate.is_file():
+            return candidate
+        legacy = Path(__file__).resolve().parent.parent / _EVENT_FILENAME
+        return legacy if legacy.is_file() else candidate
 
     def _poll(self) -> None:
         try:

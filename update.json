@@ -1,18 +1,18 @@
 {
   "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
-  "version": "1.02",
+  "version": "1.03",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip",
+  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip",
   "download_code": "",
-  "notes": "v1.02：新增一键更新（下载校验后自动替换并重启三只桌宠）；更新说明不再显示 Markdown 符号，下载入口指向压缩包直链。便携版解压双击 wanzhou-pet.exe 即可。",
+  "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布，新用户开箱即有，老用户已有台词不受影响。",
   "assets": {
-    "wanzhou-1.02-portable.zip": {
-      "fileName": "wanzhou-1.02-portable.zip",
+    "wanzhou-1.03-portable.zip": {
+      "fileName": "wanzhou-1.03-portable.zip",
       "urls": [
-        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip"
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip"
       ],
-      "size": 405259487,
-      "sha256": "c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7",
+      "size": 454272308,
+      "sha256": "91acafea2663ec79c281c2a256a618b3b737b8e1a12925011e67f8a8ebf16de8",
       "platform": "windows",
       "kind": "portable"
     }

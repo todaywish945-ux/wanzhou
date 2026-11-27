@@ -52,9 +52,10 @@ def test_all_texts_covers_every_role(cfgdir):
     assert set(result) == set(PET_IDS)
 
 
-def test_empty_texts_falls_back_to_default(cfgdir):
+def test_empty_texts_falls_back_to_role_default(cfgdir):
+    """空台词回落到**该角色**的出厂默认（15 句随包发布，三角各异）。"""
     lib.update_texts(cfgdir, "角色B", [])
-    assert lib.texts_for(cfgdir, "角色B")
+    assert lib.texts_for(cfgdir, "角色B") == lib.DEFAULT_SELF_TALK_TEXTS_BY_ROLE["角色B"]
 
 
 def test_validate_texts_dedups_and_trims(cfgdir):
@@ -62,8 +63,8 @@ def test_validate_texts_dedups_and_trims(cfgdir):
 
 
 def test_missing_roles_default_without_overwriting(cfgdir):
-    """库里已有部分角色时，缺的补默认，不覆盖已存的。"""
+    """库里已有部分角色时，缺的补该角色出厂默认，不覆盖已存的。"""
     lib.library_path(cfgdir).write_text(
         json.dumps({"角色A": ["保留我"]}, ensure_ascii=False), encoding="utf-8")
     assert lib.texts_for(cfgdir, "角色A") == ["保留我"]
-    assert lib.texts_for(cfgdir, "角色B")
+    assert lib.texts_for(cfgdir, "角色B") == lib.DEFAULT_SELF_TALK_TEXTS_BY_ROLE["角色B"]

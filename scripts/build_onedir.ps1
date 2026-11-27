@@ -77,6 +77,19 @@ if (-not (Test-Path (Join-Path $Bundle 'wanzhou-pet.exe'))) {
     throw "构建产物缺少 wanzhou-pet.exe：$Bundle"
 }
 
+Write-Host '== 构建骗子酒馆（随包独立 exe）=='
+$PowerShellExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+& $PowerShellExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root 'scripts\build_liar_game.ps1')
+if ($LASTEXITCODE -ne 0) {
+    throw '骗子酒馆（liar-game）构建失败'
+}
+
+Write-Host '== 发布前端到端验证（隔离 APPDATA 跑真实产物）=='
+& $Python (Join-Path $Root 'scripts\pre_release_smoke.py') --bundle $Bundle
+if ($LASTEXITCODE -ne 0) {
+    throw '发布前验证未通过，已中止出包；修复后重跑构建脚本。'
+}
+
 $Zip = Join-Path $DistDir "wanzhou-$AppVersion-portable.zip"
 if (Test-Path $Zip) {
     Remove-Item $Zip -Force

@@ -4157,19 +4157,49 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
             self.cfg.save()
 
     def on_launch_zzz(self) -> None:
-        """右键菜单：启动绝区零客户端（路径可用 zzz_game_path 自定义）。"""
-        from .zzz_launcher import launch_game
+        """右键菜单：启动绝区零客户端（自动探测，命中后缓存到 zzz_game_path）。"""
+        from .zzz_launcher import discover_game, launch_exe
 
         configured = str(self.cfg.get("zzz_game_path", "") or "")
-        ok, message = launch_game(configured)
+        exe, source = discover_game(configured)
+        if exe is None:
+            self.show_bubble("没找到绝区零，装好后右键告诉我一声就好啦～",
+                             duration_ms=4000)
+            return
+        if source in ("registry", "shortcut") and str(exe) != configured:
+            # 探测链命中的路径缓存进配置，下次启动零探测
+            self.cfg.set("zzz_game_path", str(exe))
+            self.cfg.save()
+        ok, message = launch_exe(exe)
         if ok:
             self.show_bubble("绝区零启动中，祝今天出货～", duration_ms=3000)
         else:
             self.show_bubble(message, duration_ms=4000)
 
     def on_launch_liar_bar(self) -> None:
-        """右键菜单：启动骗子酒馆牌局（牌局会自动请三只桌宠入座）。"""
+        """右键菜单：启动骗子酒馆牌局（牌局会自动请三只桌宠入座）。
+
+        打包版：牌局随包发布为独立 liar-game\\liar-game.exe（与 wanzhou-pet.exe
+        同层）；源码开发版：直接用本环境解释器跑仓库根 骗子酒馆/liar_game.py。
+        """
         import subprocess
+
+        flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+        # 1) 打包版：随包 liar-game 目录
+        if getattr(sys, 'frozen', False):
+            here = Path(sys.executable).parent
+            for candidate in (here / 'liar-game' / 'liar-game.exe',
+                              here / 'liar-game.exe'):
+                if candidate.is_file():
+                    subprocess.Popen([str(candidate)], cwd=str(candidate.parent),
+                                     creationflags=flags)
+                    self.show_bubble("牌局准备中，稍等我叫上另外两只～",
+                                     duration_ms=2500)
+                    return
+            self.show_bubble("没找到骗子酒馆（liar-game.exe），包可能没解压完整",
+                             duration_ms=3000)
+            return
+        # 2) 源码开发版：仓库根的 PySide6 移植版
         game = (Path(__file__).resolve().parent.parent.parent
                 / '骗子酒馆' / 'liar_game.py')
         if not game.exists():
@@ -4179,7 +4209,7 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         if not py.exists():
             py = Path(sys.executable)
         subprocess.Popen([str(py), str(game)], cwd=str(game.parent),
-                         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                         creationflags=flags)
         self.show_bubble("牌局准备中，稍等我叫上另外两只～", duration_ms=2500)
 
     def request_switch_character(self, character_id: str) -> None:

@@ -40,12 +40,38 @@ DEFAULT_ANIMATION_GAP_SECONDS = 0.0
 DEFAULT_SELF_TALK_MIN_INTERVAL = 20.0
 DEFAULT_SELF_TALK_MAX_INTERVAL = 60.0
 DEFAULT_SELF_TALK_DURATION_SECONDS = 3.2
+# 出厂默认台词（2026-11-27 起随包发布）。三角各异，真源是全局台词库
+# self_talk_texts.json（见 pet.self_talk_library）：新用户首次建库拿到本表，
+# 老用户已有台词库保持原样不被覆盖。参考项目遗留的占位台词（好女孩/好模型/
+# 欧鲸鲸）没有进来，这里是作者按角色重写的 15 句。
+DEFAULT_SELF_TALK_TEXTS_BY_ROLE: dict[str, list[str]] = {
+    "角色A": [
+        "今天的事务，都处理妥当了呢。",
+        "看来你今天比想象中精神，那就好办多了。",
+        "停停停，所有人保持辈分不变",
+        "没关系的，你已经很棒了。",
+        "可我不是你的妈妈呀。",
+    ],
+    "角色B": [
+        "今天也精神满满，开工吧！",
+        "这点事，包在我身上！",
+        "招不在新，管用就行嘛~",
+        "邦布们能有什么坏心思呢？",
+        "你一看就是那种很擅长社交的类型！",
+    ],
+    "角色C": [
+        "事务已处理完毕，你可以放松些了。",
+        "……这支曲子，倒有些耳熟。",
+        "不必紧张，慢慢来便是。",
+        "难得清闲，想弹一首了。",
+        "做得很好，该给你一份嘉奖。",
+    ],
+}
+
+# 各处 ``texts or list(DEFAULT_SELF_TALK_TEXTS)`` 的扁平兜底：拿全集。
+# 真正按角色分发的出口是 self_talk_library._defaults() / PET_IDS 查表。
 DEFAULT_SELF_TALK_TEXTS = [
-    "\u597d\u5973\u5b69\u2026\u2026",
-    "\u597d\u6a21\u578b\u2026\u2026",
-    "\u6b27\u9cb8\u9cb8\u2026\u2026",
-    "\u4eca\u5929\u4e5f\u8981\u8ba4\u771f\u5de5\u4f5c\u5440\u3002",
-    "\u518d\u966a\u4f60\u4e00\u4f1a\u513f\u3002",
+    text for _role, texts in DEFAULT_SELF_TALK_TEXTS_BY_ROLE.items() for text in texts
 ]
 DEFAULT_SELF_TALK_BUBBLE_STYLE = "classic_top"
 # 自言自语出图概率（百分比 0~100）：先决定"这次出图还是出文本"，再在对应池里等权

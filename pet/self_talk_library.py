@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from .config import DEFAULT_SELF_TALK_TEXTS
+from .config import DEFAULT_SELF_TALK_TEXTS, DEFAULT_SELF_TALK_TEXTS_BY_ROLE
 from .config_write_lock import ConfigWriteError, locked_update_json, read_json_dict
 from .pet_visibility import PET_IDS
 
@@ -55,8 +55,18 @@ def validate_texts(value) -> list[str]:
     return out
 
 
+def _defaults_for(cid: str) -> list[str]:
+    """某角色的出厂默认台词；查不到角色时退回扁平全集。"""
+    return list(DEFAULT_SELF_TALK_TEXTS_BY_ROLE.get(str(cid), DEFAULT_SELF_TALK_TEXTS))
+
+
 def _defaults() -> dict[str, list[str]]:
-    return {cid: list(DEFAULT_SELF_TALK_TEXTS) for cid in PET_IDS}
+    """按角色给出厂默认台词（三角各异）。
+
+    ``DEFAULT_SELF_TALK_TEXTS`` 是扁平全集，给别处的兜底用；这里必须按角色
+    分，否则新用户建库后三只会说一模一样的台词。
+    """
+    return {cid: _defaults_for(cid) for cid in PET_IDS}
 
 
 def _migrate_from_pets(config_dir: Path) -> dict[str, list[str]]:
@@ -90,9 +100,9 @@ def ensure_library(config_dir: Path | str) -> None:
         if missing:
             migrated = _migrate_from_pets(config_dir)
             for cid in missing:
-                out[cid] = validate_texts(migrated.get(cid)) or list(DEFAULT_SELF_TALK_TEXTS)
+                out[cid] = validate_texts(migrated.get(cid)) or _defaults_for(cid)
         # 丢掉非角色键（防脏数据），并补齐清洗
-        return {cid: validate_texts(out.get(cid)) or list(DEFAULT_SELF_TALK_TEXTS)
+        return {cid: validate_texts(out.get(cid)) or _defaults_for(cid)
                 for cid in PET_IDS}
 
     try:
@@ -110,7 +120,7 @@ def all_texts(config_dir: Path | str) -> dict[str, list[str]]:
     data, status = read_json_dict(library_path(config_dir))
     if status != "ok" or not data:
         return _defaults()
-    return {cid: validate_texts(data.get(cid)) or list(DEFAULT_SELF_TALK_TEXTS)
+    return {cid: validate_texts(data.get(cid)) or _defaults_for(cid)
             for cid in PET_IDS}
 
 
@@ -122,7 +132,7 @@ def texts_for(config_dir: Path | str, character_id: str) -> list[str]:
         cleaned = validate_texts(data.get(str(character_id)))
         if cleaned:
             return cleaned
-    return list(DEFAULT_SELF_TALK_TEXTS)
+    return _defaults_for(character_id)
 
 
 def update_texts(config_dir: Path | str, character_id: str, texts) -> list[str]:
@@ -131,7 +141,7 @@ def update_texts(config_dir: Path | str, character_id: str, texts) -> list[str]:
     if cid not in PET_IDS:
         raise ValueError(f"未知角色 id: {cid}")
     target = library_path(config_dir)
-    cleaned = validate_texts(texts) or list(DEFAULT_SELF_TALK_TEXTS)
+    cleaned = validate_texts(texts) or _defaults_for(cid)
     config_dir = Path(config_dir)
     # 先确保库已建立/迁移，否则库不存在时 locked_update_json 用 default_factory
     # 起步，会跳过其他角色的迁移数据、把它们写成出厂默认。
@@ -143,7 +153,7 @@ def update_texts(config_dir: Path | str, character_id: str, texts) -> list[str]:
         # 补齐其余角色，避免半初始化的库缺角色
         for other in PET_IDS:
             if other not in out:
-                out[other] = list(DEFAULT_SELF_TALK_TEXTS)
+                out[other] = _defaults_for(other)
         return out
 
     locked_update_json(target, _mutate, on_broken="replace", default_factory=_defaults)

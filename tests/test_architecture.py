@@ -123,8 +123,12 @@ PET_DIR = Path(__file__).resolve().parents[1] / "pet"
 # 用户看到"斜着身子从边缘出来"。修复的控制器逻辑（分母框按 scale 同步、
 # 用探头放宽边界重落位）已放在 pet/edge_probe.py；window.py 只在 change_scale /
 # set_capture_headroom 两个尺寸变化出口各加一次探头通知接线（+12），拆到别处
-# 会切断帧重建与落位的时序。实测 4683。
-WINDOW_PY_LINE_BUDGET = 4683
+# 会切断帧重建与落位的时序。
+# 2026-11-27 校准到 4713：两个右键菜单回调 on_launch_zzz / on_launch_liar_bar
+# 各 +~15 行（探测链缓存 + 打包/源码双形态启动）。它们是菜单回调的正确归属，
+# 纯逻辑已分别拆在 pet/zzz_launcher.py 与 liar_game.py（PySide6 独立 exe），
+# window.py 只剩接线；再拆 mixin 反而割裂回调与 self.cfg/show_bubble 的关系。
+WINDOW_PY_LINE_BUDGET = 4713
 
 # modern_settings_dialog.py 行数预算：按结构线拆分后实测 1857 行（拆分前 4811 行）。
 # 主对话框 ModernSettingsDialog + 对话框装配/配置写回 + 为 pet/ 与 tests/ 保留的

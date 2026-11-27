@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
-"""发版小工具：给「开源 Release + 百度网盘」写好 update.json。
+r"""发版小工具：给 GitHub Release 便携包写好 update.json。
 
 用法（在仓库根执行）::
 
-    python scripts/make_update_manifest.py --version 1.01 \
-        --notes "修复自动更新提示" \
-        --download-url "https://pan.baidu.com/s/xxxxxxx" \
-        --download-code abcd --pack-source
+    python scripts/make_update_manifest.py --version 1.03 ^
+        --notes "修复骗子酒馆与绝区零启动" ^
+        --download-url "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip" ^
+        --archive dist/wanzhou-1.03-portable.zip
 
-``--pack-source`` 会把仓库打成 ``dist/wanzhou-<版本>-source.zip``，**连 venv 一起
-打进去**（启动 bat 写的是 ``%~dp0venv\\Scripts\\pythonw.exe``，漏掉 venv 用户解压
-就跑不起来），只排除备份、缓存、日志、构建产物和开发目录。zip 的 size / SHA-256
-会记进清单；你把这个 zip 传百度网盘即可。不用现场打包时可用 ``--archive`` 指向现成 zip。
+`--archive` 指向 build_onedir.ps1 产出的便携 zip，脚本读它的 size / SHA-256
+写进 assets（客户端据此启用「下载并安装」一键更新）。本项目 download_code 留空，
+不用提取码；不再挂百度网盘，也不再打源码包。
 
 脚本只改 update.json 的 version / notes / html_url / download_url /
 download_code / assets 六个字段，其余说明字段原样保留。

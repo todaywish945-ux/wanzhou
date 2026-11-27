@@ -34,7 +34,7 @@
 
 ## 右键菜单功能
 
-- **🃏 骗子酒馆**：启动 `../骗子酒馆/liar_game.py` 牌局，三只桌宠自动入座、按牌局事件做表情、散场回原位（协议沿用旧版 `联动事件.json`）。
+- **🃏 骗子酒馆**：右键启动牌局，三只桌宠自动入座、按牌局事件做表情、散场回原位。牌局以独立程序随便携包发布（`liar-game\liar-game.exe`，PySide6 版）；源码开发时入口在仓库根 `骗子酒馆\liar_game.py`。联动事件走 `%APPDATA%\wanzhou-pet\联动事件.json`。
 - **AI 对话**：OpenAI 兼容接口（默认智谱 GLM）。首次使用：菜单 → AI 设置 → 粘贴 API Key → 测试连接。支持流式输出、多会话、按角色隔离。
 - **天气**：中国天气网 / open-meteo，免 API Key，右键 → 天气。
 - **每日一签**：同一天必得同一支（日期种子），可配 TTS 念签文。
@@ -65,7 +65,7 @@
 - 发布仓库：[todaywish945-ux/wanzhou](https://github.com/todaywish945-ux/wanzhou)。**版本真源是仓库根目录 `update.json`**（jsDelivr 三条镜像），GitHub Releases API 只在清单全取不到时兜底——仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目版本。
 - 发 exe：① 同步改 `pet/__init__.py::__version__` 与 `update.json.version`；② 装构建依赖 `venv\Scripts\python.exe -m pip install -r scripts\requirements-build.txt`，跑 `powershell -ExecutionPolicy Bypass -File scripts\build_onedir.ps1`；③ 把代码推 main，在 GitHub 建 `v<版本>` Release，并把 `dist\wanzhou-<版本>-portable.zip` 作为附件上传（单文件上限 2 GiB）；④ 跑 `python scripts/make_update_manifest.py --version <版本> --notes "更新说明" --download-url "https://github.com/todaywish945-ux/wanzhou/releases/download/v<版本>/wanzhou-<版本>-portable.zip" --archive dist\wanzhou-<版本>-portable.zip` 写回清单；⑤ 提交 `update.json` 到 main，等 jsDelivr 同步几分钟。完整步骤见 `update.json` 的 `_publish_steps`。
 - 用户解压后**双击 `wanzhou-pet.exe` 就会同时出现三只桌宠**：这个 exe 是启动器，会拉起三个独立进程（slot 1/2/3 = 角色 A/B/C），各自记位置、缩放和设置；三个进程共用一个托盘区。不需要 Python、不需要 venv、不需要 bat。
-- 这是绿色便携包，不是 Inno Setup 安装包：没有自动覆盖安装，`update.json.assets` 里是便携 zip 而非 exe 安装器，所以「下载并安装」按钮禁用，用户走「打开下载页」手动下载解压；新版本通知仍然自动送到。
+- 这是绿色便携包，不是 Inno Setup 安装包：`update.json.assets` 里是带 `size` / `sha256` 的便携 zip。更新窗的「下载并安装」按钮在校验信息齐全时启用——下载并校验压缩包后自动替换程序目录、重启三只桌宠；配置、Key、聊天记录都在 `%APPDATA%`，替换不丢数据。若清单缺校验值或当前运行方式不支持，按钮禁用，用户走「打开下载页」手动下载解压。
 
 ## 二创声明
 

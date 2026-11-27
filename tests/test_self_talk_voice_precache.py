@@ -354,13 +354,15 @@ def test_collect_all_lines_dedupes_across_pets():
     assert "只属于 A。" in texts and "只属于 B。" in texts
 
 
-def test_pick_voice_is_stable_and_follows_tone():
+def test_pick_voice_is_stable_and_follows_tone(monkeypatch):
     assert stv.pick_voice("再陪你一会儿。") == stv.pick_voice("再陪你一会儿。"), "同一句必须稳定"
     assert stv.pick_voice("今天也要认真工作呀。").startswith("happy"), "轻快鼓励 → happy"
     assert stv.pick_voice("晚安，做个好梦。").startswith("sad"), "晚安/温柔 → sad"
     assert stv.pick_voice("这是什么意思？").startswith("neutral"), "平淡陈述 → neutral"
     assert stv.pick_voice("哼，才不理你呢。").startswith("angry"), "较真/生气 → angry"
-    assert stv.pick_voice("好女孩……") == "happy-06", "已知台词走固定映射"
+    # 内置示例台词已清空，VOICE_BY_TEXT 默认为空；固定映射机制本身保留，用注入条目验证。
+    monkeypatch.setitem(stv.VOICE_BY_TEXT, "固定映射的台词。", "happy-06")
+    assert stv.pick_voice("固定映射的台词。") == "happy-06", "已知台词走固定映射"
 
 
 def test_pick_voice_always_names_an_existing_family_slot():

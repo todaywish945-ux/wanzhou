@@ -5239,6 +5239,19 @@ def main(argv: list[str] | None = None, enable_chat: bool = True) -> int:
         config = Config()
         _mac_set_dock_icon_visible(bool(config.get("show_dock_icon", True)))
         _setup_logging(config)
+        # 出厂台词 + 语音种子：新用户开箱就有 15 句按角色分发的台词与对应 wav。
+        # ensure_library 主动建库（否则台词库要等首次读取才生成，与语音种子异步）；
+        # seed_voice_cache 只补用户缓存里缺的 wav，已存在（含用户重新生成过的）
+        # 一律不动。三进程并发由 config_write_lock 串行化；失败只记日志。
+        try:
+            from .self_talk_library import ensure_library
+            from .voice.seed import seed_voice_cache
+            ensure_library(config.dir)
+            seeded = seed_voice_cache(config.dir)
+            if seeded:
+                logging.info("出厂语音种子落位 %d 个", seeded)
+        except Exception:  # noqa: BLE001 - 种子失败不能拖垮启动
+            logging.exception("出厂台词/语音种子落位失败（不影响启动）")
         if wanted_character:
             # bat 传 --character 为准（每次启动落盘；菜单切角色仍即时生效，
             # 下次带参启动会回到 bat 指定角色——与旧版单文件行为一致）。

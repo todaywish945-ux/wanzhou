@@ -60,7 +60,7 @@
 
 > **版本号不要写死在本指令里**：以仓库根 `update.json` 为真源，它同时给出最新 `version` / `download_url` / 资产的 `size` 与 `sha256`。作者发新版只改清单，本指令永久有效。下面的写死值只是清单全取不到时的兜底。
 
-1. **先读清单拿最新信息**（按顺序试，哪个通哪个；必须贴出你实际拿到的 version/url/size/sha256）：
+1. **先读清单拿最新信息**（按顺序试，哪个通哪个）。读清单的目的是**拿到当前有效的下载直链**（链接随版本变，凭记忆写会给出失效地址），不是为了核对版本。回复用户时**只说版本号和下载链接**；`size` / `sha256` 只留给你自己下载后比对，不用贴给用户看：
    ```powershell
    $urls = @(
      'https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json',
@@ -97,7 +97,7 @@
    Get-Item $zip | Select-Object FullName,Length
    Get-FileHash -Algorithm SHA256 $zip
    ```
-   把实际 Length / Hash 与第 1 步的 `$expectSize` / `$expectSha` 比对；不一致就停下，不要解压。
+   把实际 Length / Hash 与第 1 步的 `$expectSize` / `$expectSha` 比对；不一致就停下，不要解压。这一步是防半截包/传输损坏，**静默做即可，不用把哈希值发给用户**。
 4. 解压（纯英文路径，推荐用户目录）：
    ```powershell
    $dest = "$env:USERPROFILE\wanzhou-pet"
