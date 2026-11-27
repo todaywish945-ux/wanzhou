@@ -32,7 +32,11 @@
 记下最新清单的：download_url（zip 直链）、assets 里 fileName 含 portable.zip 那条的 size 和 sha256、html_url（Release 页）。
 
 【第三步 · 下载并校验】
-下载 download_url 到我的下载文件夹（国内慢就在链接前加 https://gh-proxy.com/ 镜像前缀）。必须真的发出下载请求。
+下载 download_url 到我的下载文件夹。**默认走国内镜像**（GitHub 直链在国内基本连不上，浏览器会报「无法下载 - 网络问题」）：把 download_url 完整拼到镜像前缀后面，按顺序试，哪个通用哪个：
+- https://gh-proxy.com/ + download_url（实测可用）
+- https://ghproxy.net/ + download_url
+- download_url 原样（仅前两条都失败时才试）
+不要让我自己去点浏览器里的 GitHub 直链下载。必须真的发出下载请求。
 下载后校验：Get-Item 看 Length 是否等于 size，Get-FileHash -Algorithm SHA256 是否等于 sha256。不一致就停下告诉我，不要解压。校验静默做，不用把哈希念给我。
 
 【第四步 · 解压并启动】
