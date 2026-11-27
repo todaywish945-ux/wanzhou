@@ -1,15 +1,15 @@
-# 给 AI 助手的全流程配置指令（挽昼桌宠 v1.00）
+# 给 AI 助手的全流程配置指令（挽昼桌宠 v1.01）
 
-> 你是我的电脑配置助手。目标：把「挽昼桌宠」v1.00 便携版装好，三只桌宠同时出现在桌面，AI 对话能回复，语音按我选的方式配置。
+> 你是我的电脑配置助手。目标：把「挽昼桌宠」v1.01 便携版装好，三只桌宠同时出现在桌面，AI 对话能回复，语音按我选的方式配置。
 >
 > **严格按阶段执行**：每阶段完成 → 对照验收标准自检 → 更新进度文件 → 一句话向我简报 → 进入下一阶段。
 > 用户不用懂代码、不用装 Python、不用找安装向导：这是绿色便携包。
 >
 > **能力自检（收到本指令后第一步，必须做）**：这份指令要求你**真实操作这台电脑**——能运行 PowerShell 命令、能读写用户磁盘、能联网下载文件。开始之前先确认你确实具备这些能力。如果做不到（例如你是纯网页聊天助手、运行在沙箱里碰不到用户文件系统或网络），**立刻停下并如实说一句**：「我无法操作你的电脑，请把这份指令发给有电脑控制能力的 AI 助手（如 WorkBuddy / Claude Code / Codex 等）」。**不许假装做环境体检、不许假装翻过文件夹、不许编造作者的进度汇报、不许说下载页不存在**——这些都会误导用户。
 >
-> **发布事实（不要臆测）**：v1.00 已于 2026-11-25 公开发布，Release `v1.00` 的附件 `wanzhou-1.00-portable.zip`（405,253,253 字节）可直接下载，直链见阶段 1。任何「作者还没发布 / 预计下周末上线 / 网上没有可用下载页」的说法都是错的。
+> **发布事实（不要臆测）**：v1.01 已于 2026-11-27 公开发布，Release `v1.01` 的附件 `wanzhou-1.01-portable.zip`（405,255,681 字节）可直接下载，直链见阶段 1。任何「作者还没发布 / 预计下周末上线 / 网上没有可用下载页」的说法都是错的。
 >
-> 本提示词按 v1.00 真实发布物与源码核对：Release 附件、`packaging/pet_entry.py` 启动器、右键菜单、`%APPDATA%\wanzhou-pet\config.json`、`pet/chat/models.py`、`pet/tts/`。
+> 本提示词按 v1.01 真实发布物与源码核对：Release 附件、`packaging/pet_entry.py` 启动器、右键菜单、`%APPDATA%\wanzhou-pet\config.json`、`pet/chat/models.py`、`pet/tts/`。
 >
 > **与另一款「敲敲 / 叶瞬光桌宠」的区别（不要照抄那边的步骤）**：本项目没有安装包、没有 `http://127.0.0.1:37820/health`、没有角色皮肤下载、没有在线声音克隆、没有 `llm.backup` 自动备用接口。不要去找这些，也不要往配置里硬写不存在的字段。本项目是**便携 zip + 启动器 exe + 多 provider 可切换 + TTS 朗读后端**。
 
@@ -56,22 +56,22 @@
 
 ## 阶段 1 · 下载便携包、解压并启动三只桌宠
 
-**任务**：下载 v1.00 便携包 → 校验 → 解压到英文路径 → 启动器拉起三只。
+**任务**：下载 v1.01 便携包 → 校验 → 解压到英文路径 → 启动器拉起三只。
 
 1. 下载到用户下载文件夹（三个链接是同一个文件，按顺序试，哪个通用哪个）。**必须真的发出下载请求并贴出原始输出**（`Invoke-WebRequest` / `curl.exe -L` / 浏览器下载均可）；**没试过就说「找不到包」属于编造**：
-   - 主链接（GitHub 直连）：`https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
-   - 国内加速：`https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
-   - 备用镜像：`https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip`
-   - Release 页（可直接看到附件和发布日期）：`https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00`
+   - 主链接（GitHub 直连）：`https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip`
+   - 国内加速：`https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip`
+   - 备用镜像：`https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip`
+   - Release 页（可直接看到附件和发布日期）：`https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.01`
    - 三条都失败 → 把**每条的原始报错**贴给我，并说清你的网络环境（能否访问 github.com），再让我决定；不要替我编「作者还没发布」的理由。
 2. PowerShell 校验（必须做）：
    ```powershell
-   $zip = "$env:USERPROFILE\Downloads\wanzhou-1.00-portable.zip"
+   $zip = "$env:USERPROFILE\Downloads\wanzhou-1.01-portable.zip"
    Get-Item $zip | Select-Object FullName,Length
    Get-FileHash -Algorithm SHA256 $zip
    ```
-   期望大小：`405253253` 字节
-   期望 SHA-256：`7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0`
+   期望大小：`405255681` 字节
+   期望 SHA-256：`10584acf67dd48c445ec4260ddb299c4e6efa5464ac4eef2a83340ecec078f1f`
    不一致就停下，不要解压。
 3. 解压（纯英文路径，推荐用户目录）：
    ```powershell
@@ -314,9 +314,9 @@ B 豆包：需Key，音质较好
 
 | 用途 | 路径 / 值 |
 |---|---|
-| Release 页 | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.00` |
-| 直链 | `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.00/wanzhou-1.00-portable.zip` |
-| zip 大小 / SHA-256 | `405253253` / `7ce737d07b4b9ab7e2e2906fb91f61f09836466102b73c8b829383dd194a15a0` |
+| Release 页 | `https://github.com/todaywish945-ux/wanzhou/releases/tag/v1.01` |
+| 直链 | `https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip` |
+| zip 大小 / SHA-256 | `405255681` / `10584acf67dd48c445ec4260ddb299c4e6efa5464ac4eef2a83340ecec078f1f` |
 | 推荐解压目录 | `%USERPROFILE%\wanzhou-pet` |
 | exe | `%USERPROFILE%\wanzhou-pet\wanzhou-pet\wanzhou-pet.exe` |
 | 必须同目录 | `wanzhou-pet.exe` 与 `_internal\` |
