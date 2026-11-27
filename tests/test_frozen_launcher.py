@@ -27,3 +27,19 @@ def test_launcher_spawns_three_roles(tmp_path):
         assert [cmd[cmd.index("--slot") + 1] for cmd in commands] == ["1", "2", "3"]
         assert [cmd[cmd.index("--instance") + 1] for cmd in commands] == ["A", "B", "C"]
         assert [cmd[cmd.index("--character") + 1] for cmd in commands] == ["A", "B", "C"]
+
+
+def test_launch_all_flag_spawns_three_roles(tmp_path):
+    """开机自启写的 --launch-all 必须和双击 exe（无参数）一样起三只。"""
+    env = dict(os.environ)
+    env["PET_LAUNCHER_DRY_RUN"] = "1"
+    env["QT_QPA_PLATFORM"] = "offscreen"
+    env["PYTHONPATH"] = str(ROOT)
+    completed = subprocess.run(
+        [sys.executable, "-m", "pet", "--launch-all"],
+        cwd=ROOT, env=env, capture_output=True, text=True, timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    commands = [json.loads(line) for line in completed.stdout.strip().splitlines()]
+    assert len(commands) == 3
+    assert [cmd[cmd.index("--slot") + 1] for cmd in commands] == ["1", "2", "3"]

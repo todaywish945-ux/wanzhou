@@ -74,6 +74,28 @@ def test_windows_autostart_variants_do_not_affect_each_other(monkeypatch):
     assert autostart_mod.is_enabled() is True
 
 
+def test_windows_autostart_launches_all_three_not_slot0(monkeypatch):
+    """挽昼三宠：自启必须走启动器拉三只，不能像旧版那样只带 --slot 0。"""
+    fake = _force_win(monkeypatch)
+
+    assert autostart_mod.enable() is True
+    command = fake.values[autostart_mod.VALUE_NAME]
+    assert "--launch-all" in command
+    assert "--slot 0" not in command
+
+
+def test_windows_old_slot0_autostart_is_upgraded(monkeypatch):
+    """已开启的旧 --slot 0 自启项在 is_enabled() 时自动升级为三宠启动命令。"""
+    fake = _force_win(monkeypatch)
+    old = 'cmd /c start "" /D "D:\\pet" "D:\\pet\\pythonw.exe" -m pet --slot 0'
+    fake.values[autostart_mod.VALUE_NAME] = old
+
+    assert autostart_mod.is_enabled() is True
+    new = fake.values[autostart_mod.VALUE_NAME]
+    assert "--launch-all" in new
+    assert "--slot 0" not in new
+
+
 def test_cleanup_stale_entries_removes_only_missing_paths(monkeypatch, tmp_path):
     fake = _force_win(monkeypatch)
     existing_dir = tmp_path / "existing"

@@ -73,6 +73,8 @@ def launch_three() -> int:
 
 
 if __name__ == "__main__":
+    # 开机自启写的是 --launch-all（见 pet/autostart.py）；没有 --slot 时
+    # 同样走启动器，两种写法等价，兼容旧的自启命令。
     if "--slot" in sys.argv:
         sys.exit(main())
     sys.exit(launch_three())

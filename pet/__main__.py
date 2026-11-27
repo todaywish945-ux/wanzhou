@@ -181,6 +181,13 @@ def _main() -> int:
     # OCR 识别子进程：同样不导入 pet.app，而且**连 Qt 都不导入**（见 _run_ocr_worker）。
     if "--ocr-worker" in sys.argv:
         return _run_ocr_worker()
+    # 开机自启 / 手动一次起三只：源码形态走这里，冻结 exe 的同名分支在
+    # packaging/pet_entry*.py。必须在导入 pet.app 之前分流，免得多付一份
+    # 启动器根本用不到的 GUI/素材导入成本。
+    if "--launch-all" in sys.argv:
+        from .launch_all import launch_three
+
+        return launch_three()
     from .app import main as app_main
     return app_main()
 

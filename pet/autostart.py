@@ -72,13 +72,16 @@ def _desktop_path() -> Path:
 
 
 def _linux_desktop_content() -> str:
-    """Linux 自启 .desktop 内容；源码运行经 sh 切工作目录，打包运行直接指向二进制。"""
+    """Linux 自启 .desktop 内容；源码运行经 sh 切工作目录，打包运行直接指向二进制。
+
+    挽昼三宠必须走启动器一次拉三只，所以自启命令用 --launch-all 而不是 --slot 0。
+    """
     if getattr(sys, "frozen", False):
-        command = f"{shlex.quote(str(Path(sys.executable).resolve()))} --slot 0"
+        command = f"{shlex.quote(str(Path(sys.executable).resolve()))} --launch-all"
     else:
         root_quoted = shlex.quote(str(_project_root()))
         exe_quoted = shlex.quote(str(sys.executable))
-        inner_cmd = f"cd {root_quoted} && exec {exe_quoted} -m pet --slot 0"
+        inner_cmd = f"cd {root_quoted} && exec {exe_quoted} -m pet --launch-all"
         command = f"/bin/sh -c {shlex.quote(inner_cmd)}"
     return (
         "[Desktop Entry]\n"
@@ -100,8 +103,13 @@ def _pythonw_path() -> str:
 
 
 def _win_command_is_current(command: str) -> bool:
-    """判断 Windows 自启命令是否已是“先切工作目录再启动”的新格式。"""
-    return "cmd /c start" in command.lower()
+    """判断 Windows 自启命令是否已是当前格式。
+
+    当前格式 = 先切工作目录再启动 **且带 --launch-all**。旧命令末尾的
+    ``--slot 0`` 只起 slot0 一只桌宠（三角色版必然只出现一只），必须识别为
+    过期并自动升级；只查 ``cmd /c start`` 会把这种旧命令误判为最新。
+    """
+    return "cmd /c start" in command.lower() and "--launch-all" in command.lower()
 
 
 def _iter_known_win_values() -> list[tuple[str, str]]:
@@ -169,13 +177,11 @@ def is_enabled() -> bool:
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
                 command, _ = winreg.QueryValueEx(key, VALUE_NAME)
-                # 兼容旧版：已开启但仍是旧命令（直接指向 exe，未切工作目录）时，
-                # 自动升级为新命令，避免开机自启因 CWD 不可写而解压失败。
-                if (
-                    getattr(sys, "frozen", False)
-                    and isinstance(command, str)
-                    and not _win_command_is_current(command)
-                ):
+                # 兼容旧版：已开启但仍是旧命令（未切工作目录，或末尾是
+                # --slot 0 只起一只）时自动升级，兼顾 CWD 与三角色启动。
+                # 不限制 frozen：源码运行的用户机器上旧命令同样只起一只，
+                # 也必须在下次检查时升级成 --launch-all。
+                if isinstance(command, str) and not _win_command_is_current(command):
                     try:
                         with winreg.OpenKey(
                             winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE
@@ -200,21 +206,25 @@ def is_enabled() -> bool:
 
 
 def _win_command() -> str:
+    # 挽昼三宠是三个独立进程：开机自启必须走启动器一次拉起 A/B/C，而不是
+    # 只起 slot0 一只。冻结 exe 不带 --slot 即走 launch_three()；源码形态
+    # 用显式 --launch-all（pet/__main__.py 在导入 pet.app 前分流）。
     if getattr(sys, "frozen", False):
         # onefile 的 runtime_tmpdir="." 是相对“当前工作目录”解析的；
         # 开机自启（HKCU Run）默认工作目录可能是 System32 等不可写目录。
         # 用 start 先切到 exe 所在目录再启动 exe，既保证解压目录在 exe 同目录，
-        # 又不会让 cmd 窗口一直等待桌宠退出。开机自启固定指定 --slot 0。
+        # 又不会让 cmd 窗口一直等待桌宠退出。
         exe = Path(sys.executable).resolve()
-        return f'cmd /c start "" /D "{exe.parent}" "{exe}" --slot 0'
-    return f'cmd /c start "" /D "{_project_root()}" "{_pythonw_path()}" -m pet --slot 0'
+        return f'cmd /c start "" /D "{exe.parent}" "{exe}" --launch-all'
+    return f'cmd /c start "" /D "{_project_root()}" "{_pythonw_path()}" -m pet --launch-all'
 
 
 def _mac_program_args() -> list[str]:
+    # 挽昼三宠：自启走启动器一次拉三只，不用 --slot 0（那只起一只）。
     if getattr(sys, "frozen", False):
         # .app 内二进制路径，直接作为 LaunchAgent 程序运行
-        return [str(sys.executable), "--slot", "0"]
-    return [sys.executable, "-m", "pet", "--slot", "0"]
+        return [str(sys.executable), "--launch-all"]
+    return [sys.executable, "-m", "pet", "--launch-all"]
 
 
 def enable() -> bool:
