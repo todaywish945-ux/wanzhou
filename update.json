@@ -1,8 +1,8 @@
 {
-  "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像，最后 GitHub raw 直链兜底）；客户端取所有镜像中的最高版本，防止某节点缓存旧版卡住通知；全部取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链（浏览器打开；国内建议走 assets[].urls 里的 gh-proxy 镜像）；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
+  "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像，最后 GitHub raw 直链兜底）；客户端取所有镜像中的最高版本，防止某节点缓存旧版卡住通知；全部取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 gh-proxy 镜像包装后的 GitHub Release zip 直链（国内可直连打开；原始直链在 assets[].urls 最后一条）；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
   "version": "1.03",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip",
+  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.03/wanzhou-1.03-portable.zip",
   "download_code": "",
   "notes": "修复：骗子酒馆随包发布（开箱即玩）；绝区零启动自动探测安装路径；15 句按角色定制的自言自语台词与配音随包发布；修复 CDN 缓存与重启后12小时内收不到新版通知的问题。 若「下载并安装」不可用（旧版本客户端），点「打开下载页」下载 zip，解压后双击 wanzhou-pet.exe 即可，配置不会丢。",
   "assets": {
