@@ -251,6 +251,17 @@ def latest_release(timeout: float = 5.0) -> dict | None:
     # jsDelivr 节点缓存不同步时会读到旧版（实测三条镜像都停在 1.01、而
     # raw 直链已是 1.03），导致新版本推不出去。raw 兜底 + 取最高版本两者
     # 缺一不可：raw 实时但可能被墙，最高版本保证任何一条拿到新版都生效。
+    #
+    # 版本相同时还要挑「内容更新鲜」的那份：实测发版后 cdn/gcore 缓存的
+    # update.json 版本号已是 1.03、但 download_url 还是旧的 GitHub 直链，
+    # 而 raw 已是 gh-proxy 镜像。仅比版本会选中旧直链、用户下载撞墙。
+    # 同版本时优先带镜像 download_url 的清单（它是作者后改的、更实时）。
+    def _freshness(release: dict) -> tuple:
+        version = version_parts(str(release.get("version", "")))
+        download_url = str(release.get("download_url") or "")
+        has_mirror = int("gh-proxy" in download_url or "ghproxy" in download_url)
+        return (version, has_mirror)
+
     releases: list[dict] = []
     for url in _UPDATE_JSON_URLS:
         data = _fetch_json(url, timeout)
@@ -258,7 +269,7 @@ def latest_release(timeout: float = 5.0) -> dict | None:
         if result is not None:
             releases.append(result)
     if releases:
-        return max(releases, key=lambda release: version_parts(str(release.get("version", ""))))
+        return max(releases, key=_freshness)
     data = _fetch_json(RELEASE_API, timeout)
     return _release_from_github_payload(data) if isinstance(data, dict) else None
 
