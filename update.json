@@ -1,18 +1,18 @@
 {
   "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像），三条都取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 GitHub Release 的 zip 附件直链；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。",
-  "version": "1.01",
+  "version": "1.02",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip",
+  "download_url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip",
   "download_code": "",
-  "notes": "v1.01：修复开机自启只出现一只桌宠的问题，现在开机同时拉起三只。便携版无需安装，解压双击 wanzhou-pet.exe 即可。",
+  "notes": "v1.02：新增一键更新（下载校验后自动替换并重启三只桌宠）；更新说明不再显示 Markdown 符号，下载入口指向压缩包直链。便携版解压双击 wanzhou-pet.exe 即可。",
   "assets": {
-    "wanzhou-1.01-portable.zip": {
-      "fileName": "wanzhou-1.01-portable.zip",
+    "wanzhou-1.02-portable.zip": {
+      "fileName": "wanzhou-1.02-portable.zip",
       "urls": [
-        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.01/wanzhou-1.01-portable.zip"
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.02/wanzhou-1.02-portable.zip"
       ],
-      "size": 405255681,
-      "sha256": "10584acf67dd48c445ec4260ddb299c4e6efa5464ac4eef2a83340ecec078f1f",
+      "size": 405259487,
+      "sha256": "c9ac50f5bd7b771a88ef757112302e54118f4b7df41c0cdba09a1985141f5ed7",
       "platform": "windows",
       "kind": "portable"
     }
