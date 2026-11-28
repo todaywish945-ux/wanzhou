@@ -128,9 +128,33 @@ def _add_liar_bar(menu, pet) -> None:
 
 
 def _add_zzz_launcher(menu, pet) -> None:
-    """启动绝区零入口：一键打开游戏客户端。"""
-    act = menu.addAction("🎮 启动绝区零")
-    act.triggered.connect(lambda checked=False, p=pet: p.on_launch_zzz())
+    """启动绝区零入口：子菜单展示解析到的游戏位置，支持手动指路。
+
+    探测在右键建造菜单时跑一次（注册表/账本扫描毫秒级），结果只影响展示；
+    点「启动」仍走 on_launch_zzz 完整链路（缓存/Job 降级/指路闭环都在那边），
+    展示与执行不共享状态，两处独立失败互不拖累。
+    """
+    from ..zzz_launcher import discover_game
+
+    submenu = add_submenu(menu, "🎮 启动绝区零", "play")
+    cfg = getattr(pet, "cfg", None)
+    configured = str(cfg.get("zzz_game_path", "") or "") if cfg is not None else ""
+    try:
+        exe, _source = discover_game(configured)
+    except Exception:  # noqa: BLE001 - 探测失败只降级展示，不能挡住菜单弹出
+        exe = None
+    if exe is not None:
+        launch_act = submenu.addAction("🎮 启动")
+        launch_act.triggered.connect(lambda checked=False, p=pet: p.on_launch_zzz())
+        # 地址展示（只读）：用户点名要看"它到底从哪启动"；全路径放 tooltip。
+        path_act = submenu.addAction(f"📍 {exe}")
+        path_act.setEnabled(False)
+        path_act.setToolTip(str(exe))
+    else:
+        hint = submenu.addAction("（还没找到游戏）")
+        hint.setEnabled(False)
+    pick_act = submenu.addAction("📁 手动指定路径…")
+    pick_act.triggered.connect(lambda checked=False, p=pet: p.on_pick_zzz_path())
 
 
 def _memory_trim_available(_pet) -> bool:

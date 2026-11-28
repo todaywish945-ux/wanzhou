@@ -4101,19 +4101,63 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
             self.cfg.save()
 
     def on_launch_zzz(self) -> None:
-        """右键菜单：启动绝区零客户端（自动探测，命中后缓存到 zzz_game_path）。"""
+        """右键菜单：启动绝区零客户端（自动探测，命中后缓存到 zzz_game_path）。
+
+        探测链全落空时顺势弹文件选择框让用户指路：选完缓存进配置再启动
+        （显式指路是硬指定，之后失效会走探测链自愈，再失败会再弹框）；取消则仅提示。
+        """
         from .zzz_launcher import discover_game, launch_exe
 
         configured = str(self.cfg.get("zzz_game_path", "") or "")
         exe, source = discover_game(configured)
         if exe is None:
-            self.show_bubble("没找到绝区零，装好后右键告诉我一声就好啦～",
-                             duration_ms=4000)
-            return
-        if source in ("registry", "shortcut") and str(exe) != configured:
-            # 探测链命中的路径缓存进配置，下次启动零探测
+            picked = self._ask_zzz_exe_path(configured)
+            if picked is None:
+                self.show_bubble("没找到绝区零，装好后右键告诉我一声就好啦～",
+                                 duration_ms=4000)
+                return
+            exe, source = picked, "picked"
+        if source in ("hyp", "registry", "shortcut", "picked") and str(exe) != configured:
+            # 探测链/用户指路命中的路径缓存进配置，下次启动零探测
             self.cfg.set("zzz_game_path", str(exe))
             self.cfg.save()
+        ok, message = launch_exe(exe)
+        if ok:
+            prefix = "记住啦！绝区零启动中，祝今天出货～" if source == "picked" \
+                else "绝区零启动中，祝今天出货～"
+            self.show_bubble(prefix, duration_ms=3000)
+        else:
+            self.show_bubble(message, duration_ms=4000)
+
+    def on_pick_zzz_path(self) -> None:
+        """右键菜单：手动指定绝区零 exe 位置（缓存进 zzz_game_path 并启动）。
+
+        选择框的文件名栏可直接粘贴完整路径回车，不必逐级翻目录。
+        """
+        from .zzz_launcher import launch_exe
+
+        configured = str(self.cfg.get("zzz_game_path", "") or "")
+        picked = self._ask_zzz_exe_path(configured)
+        if picked is None:
+            return
+        self.cfg.set("zzz_game_path", str(picked))
+        self.cfg.save()
+        ok, message = launch_exe(picked)
+        if ok:
+            self.show_bubble("记住啦！绝区零启动中，祝今天出货～", duration_ms=3000)
+        else:
+            self.show_bubble(message, duration_ms=4000)
+
+    def _ask_zzz_exe_path(self, configured: str):
+        """探测失败后的指路对话框；返回所选 exe 路径，取消返回 None。"""
+        from PySide6.QtWidgets import QFileDialog
+
+        from .zzz_launcher import picker_start_dir
+        path, _filter = QFileDialog.getOpenFileName(
+            self, "没找到绝区零——选一下 ZenlessZoneZero.exe 在哪",
+            picker_start_dir(configured), "可执行文件 (*.exe);;所有文件 (*.*)")
+        path = str(path or "").strip()
+        return Path(path) if path else None
         ok, message = launch_exe(exe)
         if ok:
             self.show_bubble("绝区零启动中，祝今天出货～", duration_ms=3000)
