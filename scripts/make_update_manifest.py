@@ -133,12 +133,18 @@ def main(argv: list[str] | None = None) -> int:
         delta_from = str(args.delta_from).strip().lstrip("vV")
         if not re.fullmatch(r"\d+(\.\d+)*", delta_from):
             parser.error(f"差分基线版本号非法：{args.delta_from!r}")
+        # 差分资产的镜像阶梯与全量包同构，但文件名是差分自己的——
+        # 此前从全量 download_url 做 no-op 替换，会把全量 zip 的 URL 错填给差分。
+        delta_raw = f"https://github.com/{args.repo}/releases/download/v{version}/{args.delta.name}"
         delta_payload = {
             "from": delta_from,
             "to": version,
             "fileName": args.delta.name,
-            "urls": [download_url.replace(
-                f"/releases/download/v{version}/", f"/releases/download/v{version}/")],
+            "urls": [
+                f"https://gh-proxy.com/{delta_raw}",
+                f"https://ghproxy.net/{delta_raw}",
+                delta_raw,
+            ],
             "size": args.delta.stat().st_size,
             "sha256": _sha256(args.delta),
         }
