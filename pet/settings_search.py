@@ -145,6 +145,19 @@ NAV_ALIASES: dict[str, tuple[str, ...]] = {
     "动画与移动": ("playback_speed",),
     "拖拽与弹射": ("drag_physics",),
     "模型与连接": ("provider_list",),
+    # 「按厂商添加 / 厂商预设 / SiliconFlow / DeepSeek」这类查询命中预设行
+    "按厂商添加": ("provider_preset",),
+    "厂商": ("provider_preset",),
+    "预设": ("provider_preset",),
+    "siliconflow": ("provider_preset",),
+    "deepseek": ("provider_preset",),
+    "豆包": ("provider_preset",),
+    "火山": ("provider_preset",),
+    "方舟": ("provider_preset",),
+    "kimi": ("provider_preset",),
+    "通义": ("provider_preset",),
+    "ollama": ("provider_preset",),
+    "本地模型": ("provider_preset",),
 }
 
 #: 查询**恰好**等于侧栏域名时，先把该域代表行顶到首位。

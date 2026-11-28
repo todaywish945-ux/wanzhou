@@ -1,11 +1,39 @@
 from __future__ import annotations
 import functools
-import json, ssl, threading, urllib.error, urllib.request
+import json, ssl, threading, urllib.error, urllib.parse, urllib.request
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
-from .models import ProviderConfig
+from .models import ProviderConfig, api_key_problem, endpoint_url_problem
+
+def _is_local_endpoint(endpoint: str) -> bool:
+    """本机/局域网网关可以合法地不带 Key（如 LM Studio、本地转发服务）。"""
+    host = urllib.parse.urlsplit(endpoint).hostname or ''
+    if host in ('127.0.0.1', 'localhost', '::1') or host.endswith('.localhost'):
+        return True
+    return host.startswith(('192.168.', '10.'))
+
+def _credential_preflight(config: ProviderConfig) -> str:
+    """发送前的凭据/地址体检：有结构问题就返回中文提示（'' = 放行）。
+
+    在这里拦下而不是让 http.client 抛英文的 latin-1/ascii 编码错误——
+    那个报错不指向任何一行用户能改的设置，用户只会更懵。
+    """
+    endpoint = normalize_chat_endpoint(config.base_url, config.chat_path)
+    problem = api_key_problem(config.api_key)
+    if problem:
+        return problem
+    problem = endpoint_url_problem(endpoint)
+    if problem:
+        return problem
+    # 2026-11-28 早上实测：出厂默认配置（智谱端点）+ 未配 Key 时，请求不带
+    # Authorization，服务器回 401 code=1001「Header中未收到Authorization参数」，
+    # 用户看不懂自己在哪一步错了——远程端点没 Key 就地给中文指引。
+    if not config.api_key and not _is_local_endpoint(endpoint):
+        return ('还没有配置 API Key：右键桌宠 →「桌宠设置」→「AI 与对话」→「模型与连接」，'
+                '把服务商的密钥粘进 API Key 输入框。')
+    return ''
 
 import re as _re
 
@@ -13,6 +41,16 @@ try:
     import certifi
 except Exception:  # 未安装/未打进包时回退系统默认 CA 库
     certifi = None
+
+def _auth_rejected_hint(exc: 'urllib.error.HTTPError') -> str:
+    """401/403 的人话翻译。2026-11-28 实机：智谱 Key 挂在 SiliconFlow 标签下，
+    聊天气泡甩出「HTTP 401: {"code":30014...}」——用户不可能从中读出
+    「钥匙和锁不是一家的」，这是 Key/地址错位这种头号高频死法的唯一现场。"""
+    return (f'服务商拒绝了这把 Key（HTTP {exc.code}）。最常见的原因：'
+            'Key 和所选服务商不是一家（比如智谱的 Key 配了硅基流动的地址），'
+            '或 Key 已失效/被删除。请打开 桌宠设置 → AI 与对话，'
+            '核对 API 地址和 Key 是不是同一家，再重新粘贴一次 Key。')
+
 
 def _make_ssl_context(verify: bool):
     """按配置构造 SSL 上下文：verify=False 跳过证书校验（本地网关/自签名）；
@@ -74,6 +112,9 @@ def test_connection(config, timeout: float = 10.0):
             payload = {'model': config.model, 'messages': [{'role': 'user', 'content': 'ping'}], 'max_tokens': 1, 'stream': False}
         headers = build_browser_headers({'Content-Type': 'application/json'})
         if config.api_key: headers['Authorization'] = f'Bearer {config.api_key}'
+        preflight = _credential_preflight(config)
+        if preflight:
+            return False, preflight
         req = urllib.request.Request(endpoint, data=json.dumps(payload, ensure_ascii=False).encode('utf-8'), headers=headers, method='POST')
         with urllib.request.urlopen(req, timeout=timeout, context=_make_ssl_context(config.verify_ssl)) as resp:
             resp.read(4096)
@@ -81,7 +122,7 @@ def test_connection(config, timeout: float = 10.0):
     except urllib.error.HTTPError as exc:
         detail = exc.read(2048).decode('utf-8', 'replace')
         msg = _safe_error_detail(detail)
-        if exc.code in (401, 403): return False, f'认证失败（HTTP {exc.code}）：{msg}'
+        if exc.code in (401, 403): return False, _auth_rejected_hint(exc)
         return False, f'请求失败（HTTP {exc.code}）：{msg}'
     except urllib.error.URLError as exc:
         reason = exc.reason
@@ -285,9 +326,13 @@ class OpenAICompatibleProvider:
         endpoint=normalize_chat_endpoint(config.base_url,config.chat_path)
         headers=build_browser_headers({'Content-Type':'application/json','Accept':accept})
         if config.api_key: headers['Authorization']=f'Bearer {config.api_key}'
+        preflight=_credential_preflight(config)
+        if preflight: raise ProviderError(preflight)
         req=urllib.request.Request(endpoint,data=json.dumps(payload,ensure_ascii=False).encode('utf-8'),headers=headers,method='POST')
         try: return urllib.request.urlopen(req,timeout=config.timeout,context=_make_ssl_context(config.verify_ssl))
         except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403):
+                raise ProviderError(_auth_rejected_hint(exc), exc.code) from exc
             detail=exc.read(2048).decode('utf-8','replace'); raise ProviderError(_safe_error_detail(detail),exc.code) from exc
         except urllib.error.URLError as exc:
             reason=exc.reason; hint=_CERT_HINT if _is_cert_verify_error(reason) else ''

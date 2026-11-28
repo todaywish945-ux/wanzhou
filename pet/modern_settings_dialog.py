@@ -81,7 +81,6 @@ from .config import (
     DEFAULT_SELF_TALK_DURATION_SECONDS,
     DEFAULT_SELF_TALK_MAX_INTERVAL,
     DEFAULT_SELF_TALK_MIN_INTERVAL,
-    DEFAULT_SELF_TALK_TEXTS,
     _float_or_default,
 )
 from .context_menus.icons import (
@@ -277,8 +276,14 @@ class ModernSettingsDialog(QDialog):
 
     def __init__(self, config, parent=None, *, include_ai: bool = True,
                  standalone: bool = False, initial_page: str | None = None,
-                 chat_build_capable: bool | None = None):
+                 chat_build_capable: bool | None = None,
+                 self_talk_saved_hook=None):
         super().__init__(parent)
+        # 台词管理保存成功后的钩子（可选）：由打开方（运行中的桌宠）传入
+        # shell.precache_self_talk_voice，让"删除/改写台词"后立即用当前配置
+        # 音色补齐受影响句子的预缓存（否则回退内置台词会命中出厂种子录音，
+        # 声线突变）。standalone 独立启动（无 shell）不传，默认 no-op。
+        self._self_talk_saved_hook = self_talk_saved_hook
         # slot 设置页（含 #271 起的主宠页 = slot0 页）：非 per-slot 键直读**主**配置
         #（而不是 slot 文件里的无效快照），保存时按同一分流写回。
         # 见 pet/settings_slot_config.py 的模块 docstring。
@@ -1068,7 +1073,8 @@ class ModernSettingsDialog(QDialog):
         """台词管理：一个入口查看/修改所有角色的自言自语台词（独立全局库）。"""
         from .self_talk_manager import SelfTalkManagerDialog
 
-        dialog = SelfTalkManagerDialog(self.config, parent=self)
+        dialog = SelfTalkManagerDialog(self.config, parent=self,
+                                       on_saved=self._self_talk_saved_hook)
         dialog.exec()
 
     def _preview_click_sound(self) -> None:
@@ -1454,7 +1460,7 @@ class ModernSettingsDialog(QDialog):
             vision_rows = claim("vision_same", "vision_model", "vision_url", "vision_key")
             ai_sections = page_content(
                 [
-                    ("API 列表", claim("provider_list")),
+                    ("API 列表", claim("provider_list", "provider_preset")),
                     (
                         "模型与连接",
                         claim(
@@ -1799,7 +1805,9 @@ class ModernSettingsDialog(QDialog):
         self.config.reload()
         minimum = min(self.min_spin.value(), self.max_spin.value())
         maximum = max(self.min_spin.value(), self.max_spin.value())
-        texts = [line.strip()[:120] for line in self.texts_edit.toPlainText().splitlines() if line.strip()]
+        # 台词池已固定（音频预录，见 self_talk_library 模块注释）：这里不再读
+        # texts_edit / 写 self_talk_texts 键 / 写全局台词库。勾选播报走
+        # 「管理所有角色台词」对话框（self_talk_disabled.json）。
         self.config.set("scale", float(self.scale_combo.currentData()))
         self.config.set("on_top", self.on_top_check.isChecked())
         if self.dock_icon_check is not None:
@@ -1911,16 +1919,6 @@ class ModernSettingsDialog(QDialog):
         self.config.set("self_talk_min_interval", minimum)
         self.config.set("self_talk_max_interval", maximum)
         self.config.set("self_talk_duration_seconds", self.self_talk_duration_spin.value())
-        self.config.set("self_talk_texts", texts or list(DEFAULT_SELF_TALK_TEXTS))
-        # 台词真源写在全局库（按角色索引），保证「应用到其他桌宠」不会覆盖；
-        # 上面的 config 键仅留作兼容回退。
-        try:
-            from . import self_talk_library as _stl
-            _cid = str(self.config.get("character") or "")
-            if _cid:
-                _stl.update_texts(self.config.dir, _cid, texts or list(DEFAULT_SELF_TALK_TEXTS))
-        except Exception:
-            logging.getLogger("dsh-pet-standalone").warning("台词库保存失败", exc_info=True)
         self.config.set("self_talk_image_dir", self.self_talk_image_dir_picker.text())
         self.config.set("self_talk_image_scale", self.self_talk_image_scale_spin.value())
         self.config.set("self_talk_image_chance", self.self_talk_image_chance_spin.value())

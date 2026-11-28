@@ -407,6 +407,10 @@ def _post_vision_request(
         if not api_key:
             raise VisionError('独立视觉服务未配置 API Key')
     if api_key:
+        from .chat.models import api_key_problem  # 与聊天发送侧同一套体检
+        problem = api_key_problem(api_key)
+        if problem:
+            raise VisionError(problem)
         headers['Authorization'] = f'Bearer {api_key}'
     req = urllib.request.Request(
         endpoint,

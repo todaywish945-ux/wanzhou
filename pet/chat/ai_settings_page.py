@@ -44,6 +44,11 @@ from .memory import LAYERS, ChatMemory, layer_of, memory_path
 from .memory_recall import LAYER_LABELS, is_archived
 from .utils import _safe_emit
 
+#: 已存 Key 的掩码显示：字段永不回显真值，但**也不许空白**——空框会被读成
+#「Key 丢了」（2026-11-28 用户实测误报链的最后一环）。KEY_MASK 在所有消费点
+#（草稿/保存/测试连接）都被识别为「保持不变」，绝不会把星号当成真 Key 存走。
+KEY_MASK = "**********"
+
 
 class _AiSettingsPage(QWidget):
     test_done = Signal(bool, str)
@@ -53,12 +58,13 @@ class _AiSettingsPage(QWidget):
         self.setObjectName("aiSettingsContent")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         # No-chat bundles exclude pet.chat and never construct this optional page.
-        from .models import ProviderConfig, SecretStore, WEB_SEARCH_KEYED_ENGINES
+        from .models import PROVIDER_PRESETS, ProviderConfig, SecretStore, WEB_SEARCH_KEYED_ENGINES
         from .providers import test_connection
         from .web_search import ENGINE_LABELS
 
         self.config = config
         self._provider_config_type = ProviderConfig
+        self._provider_presets = PROVIDER_PRESETS
         self._secret_store_type = SecretStore
         self._test_connection = test_connection
         self.settings = config.chat_settings()
@@ -72,6 +78,11 @@ class _AiSettingsPage(QWidget):
         self.provider_combo = ModernSelect(self, width=230)
         self.add_provider_btn = QPushButton("添加", self)
         self.delete_provider_btn = QPushButton("删除", self)
+        # 官方厂商快速添加：选厂商 → 一键带出 URL/模型默认值，用户只需贴 Key。
+        self.preset_combo = ModernSelect(self, width=230)
+        for preset_id, preset in self._provider_presets.items():
+            self.preset_combo.addItem(preset["label"], preset_id)
+        self.add_preset_btn = QPushButton("按厂商添加", self)
         for pid, provider_item in self.settings.providers.items():
             self.provider_combo.addItem(self._provider_label(provider_item), pid)
         self.provider_combo.setCurrentData(self.settings.active_provider)
@@ -170,11 +181,21 @@ class _AiSettingsPage(QWidget):
             self.provider_combo,
             [self.add_provider_btn, self.delete_provider_btn],
         )
+        preset_row = ResponsiveActionRow(
+            self.preset_combo,
+            [self.add_preset_btn],
+        )
         root.addWidget(SettingsSection("API 列表", [
             SettingRow(
                 "provider_list", "API 列表",
                 "选择要编辑/切换的模型服务；保存后当前选中项会作为 active_provider 生效。",
                 provider_row,
+            ),
+            SettingRow(
+                "provider_preset", "按厂商添加",
+                "官方 API 地址固定：选厂商一键带出地址和推荐模型，贴上 Key 就能用。"
+                "中转站或本地服务请用上面的「添加」手动填。",
+                preset_row,
             ),
         ], self))
         root.addWidget(SettingsSection("模型与连接", [
@@ -295,8 +316,12 @@ class _AiSettingsPage(QWidget):
         ], self, advanced=True))
         self.provider_combo.currentIndexChanged.connect(self._on_provider_changed)
         self.add_provider_btn.clicked.connect(self._add_provider)
+        self.add_preset_btn.clicked.connect(self._add_preset_provider)
         self.delete_provider_btn.clicked.connect(self._delete_provider)
         self._update_provider_buttons()
+        # 首次打开设置的 Key 掩码/占位：构造路径不经过 _load_provider_ui，
+        # 漏了这步就是「重开设置 Key 没了」误报的复刻（见 _refresh_key_display）。
+        self._refresh_key_display(provider)
         root.addStretch(1)
 
     def _on_system_notify_edited(self, _checked: bool = False) -> None:
@@ -332,8 +357,8 @@ class _AiSettingsPage(QWidget):
         if not pid or pid not in self.settings.providers:
             return
         existing = self._provider_drafts.get(pid, {})
-        key_text = self.key.text()
-        vkey_text = self.vision_key.text()
+        key_text = self._typed_key()
+        vkey_text = self._typed_vision_key()
         self._provider_drafts[pid] = {
             "name": self.name.text().strip(),
             "base_url": self.url.text().strip(),
@@ -353,6 +378,40 @@ class _AiSettingsPage(QWidget):
             "reasoning_effort": str(self.reasoning_effort.currentData() or "high"),
         }
 
+    def _refresh_key_display(self, provider) -> None:
+        """按钥匙串实况刷新聊天/视觉 Key 框：已存显示掩码，未存留空。
+
+        Key 字段永不回显真值；已存的用 KEY_MASK 顶住字段（用户要求：不要空着），
+        占位文案同步说明状态。构造期首次打开 settings 不走 _load_provider_ui，
+        必须单独调一次（2026-11-28 实测漏网导致「Key 没了」误报）。
+        """
+        try:
+            stored = self._secret_store_type().get(provider.api_key_ref)
+        except Exception:  # noqa: BLE001 - 钥匙串读失败按未存提示，不崩设置页
+            stored = ""
+        self.key.setText(KEY_MASK if stored else "")
+        self.key.setPlaceholderText(
+            "已保存到系统钥匙串；粘贴新 Key 将覆盖" if stored else "尚未保存，填入后将存入系统钥匙串")
+        try:
+            vstored = self._secret_store_type().get(provider.vision_api_key_ref)
+        except Exception:  # noqa: BLE001
+            vstored = ""
+        self.vision_key.setText(KEY_MASK if vstored else "")
+        self.vision_key.setPlaceholderText(
+            "已保存到系统钥匙串；粘贴新 Key 将覆盖" if vstored else "尚未保存，填入后将存入系统钥匙串")
+
+    def _typed_key(self) -> str:
+        """输入框里的新聊天 Key；掩码 = 没输入新值（保持钥匙串原值）。"""
+        from .models import sanitize_api_key
+        text = sanitize_api_key(self.key.text())
+        return "" if text == KEY_MASK else text
+
+    def _typed_vision_key(self) -> str:
+        """输入框里的新视觉 Key；掩码 = 没输入新值（保持钥匙串原值）。"""
+        from .models import sanitize_api_key
+        text = sanitize_api_key(self.vision_key.text())
+        return "" if text == KEY_MASK else text
+
     def _load_provider_ui(self, provider_id: str) -> None:
         p = self.settings.providers.get(provider_id)
         if p is None:
@@ -362,22 +421,13 @@ class _AiSettingsPage(QWidget):
         self.name.setText(draft.get("name") if draft.get("name") is not None else p.name)
         self.url.setText(draft.get("base_url") if draft.get("base_url") is not None else p.base_url)
         self.model.setText(draft.get("model") if draft.get("model") is not None else p.model)
-        self.key.clear()
-        # Key 字段出于安全永不回显（clear）；但"空"必须可判读：钥匙串里有存就
-        # 用占位文案明说，否则用户重开设置看到空框会以为 Key 丢了（误报 top1）。
-        stored = self._secret_store_type().get(p.api_key_ref)
-        self.key.setPlaceholderText(
-            "已保存到系统钥匙串；留空 = 保持不变" if stored else "尚未保存，填入后将存入系统钥匙串")
+        self._refresh_key_display(p)
         self.timeout.setValue(int(draft.get("timeout", p.timeout)))
         self.temperature.setValue(float(draft.get("temperature", p.temperature)))
         self.tokens.setValue(int(draft.get("max_tokens", p.max_tokens)))
         self.vision_model.setText(draft.get("vision_model", p.vision_model))
         self.vision_same.setChecked(bool(draft.get("vision_same_as_chat", p.vision_same_as_chat)))
         self.vision_url.setText(draft.get("vision_base_url", p.vision_base_url))
-        self.vision_key.clear()
-        vstored = self._secret_store_type().get(p.vision_api_key_ref)
-        self.vision_key.setPlaceholderText(
-            "已保存到系统钥匙串；留空 = 保持不变" if vstored else "尚未保存，填入后将存入系统钥匙串")
         self.skip_ssl.setChecked(not bool(draft.get("verify_ssl", p.verify_ssl)))
         self.thinking_mode.setCurrentData(draft.get("thinking", p.thinking))
         self.reasoning_effort.setCurrentData(draft.get("reasoning_effort", p.reasoning_effort))
@@ -400,16 +450,35 @@ class _AiSettingsPage(QWidget):
             i += 1
         return f"api-{i}"
 
-    def _add_provider(self) -> None:
+    def _add_preset_provider(self) -> None:
+        """按厂商预设新建：URL/模型/路径取预设表，其余沿用当前配置。"""
+        preset_id = self.preset_combo.currentData()
+        preset = self._provider_presets.get(preset_id)
+        if not preset:
+            return
+        self._add_provider(
+            name=preset["label"],
+            base_url=preset["base_url"],
+            chat_path=preset["chat_path"],
+            model=preset["model"],
+        )
+        # 提示用户接下来做什么（Key 在哪拿 + 本地服务免 Key）
+        self.key.setFocus()
+        self.key.setPlaceholderText(
+            f"{preset.get('key_hint', '填入厂商 API Key')}；填入后将存入系统钥匙串")
+
+    def _add_provider(self, *, name: str | None = None, base_url: str | None = None,
+                      chat_path: str | None = None, model: str | None = None) -> None:
+        """新建 Provider；给了预设字段就用预设值，否则复制当前项（原「副本」语义）。"""
         self._capture_current_draft()
         base = self.settings.active_config
         new_id = self._new_provider_id()
         new = self._provider_config_type(
             new_id,
-            name=f"{base.name} 副本",
-            base_url=base.base_url,
-            chat_path=base.chat_path,
-            model=base.model,
+            name=name or f"{base.name} 副本",
+            base_url=base_url or base.base_url,
+            chat_path=chat_path or base.chat_path,
+            model=model or base.model,
             api_key_ref=f"provider/{new_id}",
             timeout=base.timeout,
             temperature=base.temperature,
@@ -474,13 +543,21 @@ class _AiSettingsPage(QWidget):
         self.delete_provider_btn.setEnabled(len(self.settings.providers) > 1)
 
     def _apply_draft_to_provider(self, provider_id: str) -> None:
+        from .models import api_key_problem, endpoint_url_problem, sanitize_api_key
+
         p = self.settings.providers.get(provider_id)
         draft = self._provider_drafts.get(provider_id)
         if p is None or not draft:
             return
         if draft.get("name"):
             p.name = draft["name"]
-        p.base_url = draft.get("base_url") or p.base_url
+        new_url = str(draft.get("base_url") or "").strip()
+        url_problem = endpoint_url_problem(new_url)
+        if url_problem:
+            # 2026-11-28：脏地址不落盘，弹一次人话提示；其余字段照常保存。
+            QMessageBox.warning(self, "API 地址未保存", url_problem)
+        else:
+            p.base_url = new_url or p.base_url
         p.model = draft.get("model") or p.model
         p.timeout = float(draft.get("timeout", p.timeout))
         p.temperature = float(draft.get("temperature", p.temperature))
@@ -491,13 +568,27 @@ class _AiSettingsPage(QWidget):
         p.verify_ssl = bool(draft.get("verify_ssl", p.verify_ssl))
         p.thinking = str(draft.get("thinking", p.thinking) or "auto")
         p.reasoning_effort = str(draft.get("reasoning_effort", p.reasoning_effort) or "high")
-        key = str(draft.get("key") or "")
+        key = sanitize_api_key(str(draft.get("key") or ""))
+        if key == KEY_MASK:  # 双保险：掩码永不落盘（草稿层已过滤）
+            key = ""
+        key_problem = api_key_problem(key)
+        if key_problem:
+            # 复制时带进非英文字符的 Key 发出去就是英文的 latin-1 编码报错，
+            # 用户看不懂——保存前直接拦下（2026-11-28 用户实测翻车路径）。
+            QMessageBox.warning(self, "API Key 未保存", key_problem)
+            key = ""
         if key:
             p.api_key_ref = p.api_key_ref or f"provider/{provider_id}"
             if not self._secret_store_type().set(p.api_key_ref, key):
                 p.api_key = key
                 QMessageBox.warning(self, "安全存储不可用", "无法使用系统安全存储，Key 仅本次运行保留，重启需重输。")
-        vkey = str(draft.get("vision_key") or "")
+        vkey = sanitize_api_key(str(draft.get("vision_key") or ""))
+        if vkey == KEY_MASK:  # 双保险：掩码永不落盘
+            vkey = ""
+        vkey_problem = api_key_problem(vkey)
+        if vkey_problem:
+            QMessageBox.warning(self, "视觉 Key 未保存", vkey_problem)
+            vkey = ""
         if vkey:
             p.vision_api_key_ref = p.vision_api_key_ref or f"provider/{provider_id}/vision"
             if not self._secret_store_type().set(p.vision_api_key_ref, vkey):
@@ -505,12 +596,18 @@ class _AiSettingsPage(QWidget):
                 QMessageBox.warning(self, "安全存储不可用", "无法使用系统安全存储，Key 仅本次运行保留，重启需重输。")
 
     def _apply_web_search_settings(self) -> None:
+        from .models import api_key_problem, sanitize_api_key
+
         web = self.settings.web_search
         web.enabled = self.web_search_enabled.isChecked()
         web.engine = str(self.web_search_engine.currentData() or "baidu")
         web.max_results = int(self.web_search_results.value())
         web.fetch_pages = self.web_search_fetch.isChecked()
-        key = self.web_search_key.text().strip()
+        key = sanitize_api_key(self.web_search_key.text())
+        key_problem = api_key_problem(key)
+        if key_problem:
+            QMessageBox.warning(self, "搜索 API Key 未保存", key_problem)
+            key = ""
         if key:
             web.api_key_ref = web.api_key_ref or "websearch/api"
             if self._secret_store_type().set(web.api_key_ref, key):
@@ -531,7 +628,7 @@ class _AiSettingsPage(QWidget):
             self.model.text().strip(),
             provider.api_key_ref,
             # 表单未填时回退钥匙串：凭据默认存系统钥匙串，直接读 api_key 为空
-            self.key.text() or provider.api_key or self._secret_store_type().get(provider.api_key_ref),
+            self._typed_key() or sanitize_api_key(provider.api_key) or self._secret_store_type().get(provider.api_key_ref),
             float(self.timeout.value()),
             float(self.temperature.value()),
             int(self.tokens.value()),
@@ -541,7 +638,18 @@ class _AiSettingsPage(QWidget):
         )
 
     def _run_test(self) -> None:
+        from .models import api_key_problem, endpoint_url_problem, sanitize_api_key
+
         if self._test_thread is not None and self._test_thread.is_alive():
+            return
+        # 与发送侧同一套体检：脏 Key/地址直接本地报错，不发请求。
+        preflight = endpoint_url_problem(self.url.text().strip()) or api_key_problem(
+            self._typed_key()
+            or sanitize_api_key(self.settings.active_config.api_key)
+            or self._secret_store_type().get(self.settings.active_config.api_key_ref)
+        )
+        if preflight:
+            self._on_test_done(False, preflight)
             return
         self.test_button.setEnabled(False)
         self.test_button.setText("测试中…")
@@ -575,7 +683,27 @@ class _AiSettingsPage(QWidget):
             self._roleplay_scene, self._roleplay_cast = dialog.values()
         dialog.deleteLater()
 
+    def _confirm_key_mismatch(self, warning: str) -> bool:
+        """Key 与服务商疑似错位的保存前确认；返回是否仍要保存。"""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Key 与服务商似乎不匹配")
+        box.setText(warning)
+        yes = box.addButton("仍然保存", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("返回修改", QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        return box.clickedButton() is yes
+
     def save(self) -> None:
+        # 保存前先嗅探新 Key 与 API 地址是否像一家（2026-11-28 实机翻车：
+        # 智谱 Key 挂在 SiliconFlow 标签下，聊天 401「Token is invalid」）。
+        # 放在 save() 最顶上：用户点「返回修改」时零副作用，一个字段都不动。
+        from .models import key_provider_mismatch
+        typed_key = self._typed_key()
+        if typed_key:
+            warning = key_provider_mismatch(typed_key, self.url.text().strip())
+            if warning and not self._confirm_key_mismatch(warning):
+                return
         # 保存前基于磁盘最新配置重取快照：另一个设置窗口（AI 设置/桌宠设置 AI 页）
         # 可能在本窗口打开期间改过 Provider 结构；先保留本窗口的 provider 草稿/
         # 新增/删除，再与磁盘快照合并，避免覆盖其它窗口新增的结构。

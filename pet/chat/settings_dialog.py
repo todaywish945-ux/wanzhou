@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 from .models import ChatSettings, ProviderConfig, SecretStore
+from .models import api_key_problem, endpoint_url_problem, sanitize_api_key
 from .providers import test_connection
 from .themes import CHAT_UI_VIEW_ASPECT, LEGACY_CHAT_UI_STYLE_LABELS, theme_names
 from .utils import _safe_emit
@@ -355,7 +356,7 @@ class ChatSettingsDialog(QDialog):
             self.model.text().strip(),
             p.api_key_ref,
             # 表单未填时回退钥匙串：凭据默认存系统钥匙串，直接读 api_key 为空
-            self.key.text() or p.api_key or SecretStore().get(p.api_key_ref),
+            sanitize_api_key(self.key.text()) or sanitize_api_key(p.api_key) or SecretStore().get(p.api_key_ref),
             float(self.timeout.value()),
             float(self.temp.value()),
             int(self.tokens.value()),
@@ -397,7 +398,13 @@ class ChatSettingsDialog(QDialog):
             return
         if draft.get('name'):
             p.name = draft['name']
-        p.base_url = draft.get('base_url') or p.base_url
+        new_url = str(draft.get('base_url') or '').strip()
+        url_problem = endpoint_url_problem(new_url)
+        if url_problem:
+            # 与现代设置页同一口径：脏地址不落盘，其余字段照常保存。
+            QMessageBox.warning(self, 'API 地址未保存', url_problem)
+        else:
+            p.base_url = new_url or p.base_url
         p.model = draft.get('model') or p.model
         p.timeout = float(draft.get('timeout', p.timeout))
         p.temperature = float(draft.get('temperature', p.temperature))
@@ -406,13 +413,21 @@ class ChatSettingsDialog(QDialog):
         p.vision_same_as_chat = bool(draft.get('vision_same_as_chat', p.vision_same_as_chat))
         p.vision_base_url = draft.get('vision_base_url', p.vision_base_url)
         p.verify_ssl = bool(draft.get('verify_ssl', p.verify_ssl))
-        key = str(draft.get('key') or '')
+        key = sanitize_api_key(str(draft.get('key') or ''))
+        key_problem = api_key_problem(key)
+        if key_problem:
+            QMessageBox.warning(self, 'API Key 未保存', key_problem)
+            key = ''
         if key:
             p.api_key_ref = p.api_key_ref or f'provider/{provider_id}'
             if not SecretStore().set(p.api_key_ref, key):
                 p.api_key = key
                 QMessageBox.warning(self, '安全存储不可用', '无法使用系统安全存储，Key 仅本次运行保留，重启需重输。')
-        vkey = str(draft.get('vision_key') or '')
+        vkey = sanitize_api_key(str(draft.get('vision_key') or ''))
+        vkey_problem = api_key_problem(vkey)
+        if vkey_problem:
+            QMessageBox.warning(self, '视觉 Key 未保存', vkey_problem)
+            vkey = ''
         if vkey:
             p.vision_api_key_ref = p.vision_api_key_ref or f'provider/{provider_id}/vision'
             if not SecretStore().set(p.vision_api_key_ref, vkey):

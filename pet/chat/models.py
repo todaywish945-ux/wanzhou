@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import re
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -33,6 +34,46 @@ REASONING_EFFORTS=('low','high','max')
 WEB_SEARCH_ENGINES=('baidu','duckduckgo','bocha','tavily')
 # 需要 API Key 的搜索引擎（其余为免 Key 的网页抓取）
 WEB_SEARCH_KEYED_ENGINES=('bocha','tavily')
+
+#: 零宽字符：复制网页文字时容易把 BOM / 零宽空格一起带进 Key，肉眼不可见
+#: 但会让请求头编码炸掉（2026-11-28 实测：'latin-1' codec can't encode ...）。
+_ZERO_WIDTH_CHARS = '\ufeff\u2060\u200b\u200c\u200d\u200e\u200f'
+
+def sanitize_api_key(raw: str) -> str:
+    """去掉粘贴进来的首尾空白与零宽字符；其余内容原样保留。"""
+    key = str(raw or '')
+    for ch in _ZERO_WIDTH_CHARS:
+        key = key.replace(ch, '')
+    return key.strip()
+
+def api_key_problem(key: str) -> str:
+    """非空 API Key 的结构问题，返回中文提示；'' 表示可以直接使用。
+
+    各家 Key（sk- 开头 / UUID / 纯字母数字）都是可打印 ASCII；只要出现
+    非 ASCII 字符，就必然是复制时带上了页面文字、中文标点或全角空格——
+    这种 Key 发出去会在 http.client 编码 Authorization 头时报
+    ``'latin-1' codec can't encode ...``（英文报错，用户看不懂），
+    所以在保存与发送两侧都拦下，给一句人话。
+    """
+    if not key:
+        return ''
+    bad = [ch for ch in key if not (32 <= ord(ch) <= 126)]
+    if bad:
+        return ('密钥里混入了非英文字符（常见于整段复制了页面文字、带上了中文标注或全角空格）。'
+                '请回到服务商控制台，只复制密钥本身（通常是一串英文数字，如 sk- 开头）再重新粘贴。')
+    return ''
+
+def endpoint_url_problem(url: str) -> str:
+    """API 地址的问题提示；'' 表示可用（空串由调用方决定语义）。"""
+    url = str(url or '').strip()
+    if not url:
+        return ''
+    if not (url.startswith('http://') or url.startswith('https://')):
+        return 'API 地址需要以 http:// 或 https:// 开头。'
+    bad = [ch for ch in url if ord(ch) > 127]
+    if bad:
+        return 'API 地址里混入了非英文字符，请重新粘贴服务商标注的接口地址本身。'
+    return ''
 
 def _choice(v, choices, default):
     v=str(v or '').strip().lower()
@@ -73,6 +114,96 @@ class ProviderConfig:
         d=asdict(self); d.pop('provider_id',None); d.pop('web_search',None)
         if not include_secret: d.pop('api_key',None); d.pop('vision_api_key',None)
         return d
+
+#: 官方厂商预设（2026-11-28 定案：官方 API 地址固定，选厂商即带出 URL+模型默认值；
+#: base_url/chat_path 按各官方文档口径，与 ProviderConfig 的拆分字段直接对应。
+#: 中转站/本地模型不在表内——那些本来就要手填，走通用输入框）。
+#: model 只是"出厂推荐值"，用户随时可改；不锁定。
+PROVIDER_PRESETS: dict[str, dict] = {
+    'zhipu': {
+        'label': '智谱 GLM',
+        'base_url': 'https://open.bigmodel.cn/api/paas/v4',
+        'chat_path': '/chat/completions',
+        'model': 'glm-4.5-flash',
+        'models': ['glm-4.5-flash', 'glm-4.6', 'glm-4.5-air', 'glm-4-plus'],
+        'key_hint': 'bigmodel.cn 控制台 → API Keys',
+    },
+    'siliconflow': {
+        'label': '硅基流动 SiliconFlow',
+        'base_url': 'https://api.siliconflow.cn/v1',
+        'chat_path': '/chat/completions',
+        'model': 'Qwen/Qwen2.5-7B-Instruct',
+        'models': ['Qwen/Qwen2.5-7B-Instruct', 'deepseek-ai/DeepSeek-V3', 'THUDM/glm-4-9b-chat'],
+        'key_hint': 'siliconflow.cn → API 密钥',
+    },
+    'deepseek': {
+        'label': 'DeepSeek',
+        'base_url': 'https://api.deepseek.com/v1',
+        'chat_path': '/chat/completions',
+        'model': 'deepseek-chat',
+        'models': ['deepseek-chat', 'deepseek-reasoner'],
+        'key_hint': 'platform.deepseek.com → API Keys',
+    },
+    'moonshot': {
+        'label': '月之暗面 Kimi',
+        'base_url': 'https://api.moonshot.cn/v1',
+        'chat_path': '/chat/completions',
+        'model': 'moonshot-v1-8k',
+        'models': ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
+        'key_hint': 'platform.moonshot.cn → API Key 管理',
+    },
+    'qwen': {
+        'label': '阿里通义千问',
+        'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        'chat_path': '/chat/completions',
+        'model': 'qwen-plus',
+        'models': ['qwen-plus', 'qwen-turbo', 'qwen-max'],
+        'key_hint': '阿里云百炼控制台 → API-KEY',
+    },
+    'volcengine': {
+        'label': '火山引擎（豆包）',
+        'base_url': 'https://ark.cn-beijing.volces.com/api/v3',
+        'chat_path': '/chat/completions',
+        'model': 'doubao-seed-1-6-flash',
+        'models': ['doubao-seed-1-6-flash', 'doubao-seed-1-6', 'doubao-1-5-pro-32k'],
+        'key_hint': '火山方舟控制台 → API Key 管理',
+    },
+    'local': {
+        'label': '本地模型（Ollama 等）',
+        'base_url': 'http://127.0.0.1:11434/v1',
+        'chat_path': '/chat/completions',
+        'model': 'qwen2.5:7b',
+        'models': ['qwen2.5:7b', 'llama3.1:8b'],
+        'key_hint': '本地服务无需 Key，留空即可',
+    },
+}
+
+#: 智谱专有 Key 形态（id.secret：32 位十六进制 + 点 + 16 位字母数字）。
+#: 别家（硅基流动/DeepSeek/Moonshot/OpenAI…）都是 sk- 前缀，彼此无法靠格式区分，
+#: 所以嗅探只对「智谱格式」这一种高置信形态断言，其余一律不猜（宁可漏报）。
+_ZHIPU_KEY_RE = re.compile(r'[0-9a-f]{32}\.[A-Za-z0-9]{16}')
+
+
+def key_provider_mismatch(key: str, base_url: str) -> str:
+    """保存前嗅探 Key 与服务商是否像一家。返回警告文案；像一家/拿不准返回空串。
+
+    只断言双向高置信错位：智谱格式的 Key 配非智谱地址（2026-11-28 实机翻车：
+    用户的智谱 Key 挂在 SiliconFlow 标签下，聊天 401「Token is invalid」）；
+    以及智谱地址配明显非智谱的 Key。sk- 前缀各家通用，不做归属性断言。
+    """
+    key = str(key or '').strip()
+    url = str(base_url or '')
+    if not key or not url:
+        return ''
+    is_zhipu_key = bool(_ZHIPU_KEY_RE.fullmatch(key))
+    is_zhipu_url = 'open.bigmodel.cn' in url
+    if is_zhipu_key and not is_zhipu_url:
+        return ('这把 Key 是智谱专有格式（id.secret），但 API 地址不是智谱'
+                f'（当前：{url}）。钥匙和锁可能不是一家的，确定要这样保存吗？')
+    if is_zhipu_url and not is_zhipu_key:
+        return ('API 地址是智谱，但这把 Key 不像智谱发的（智谱是 id.secret 格式）。'
+                '确定没拿错别家的 Key 吗？')
+    return ''
 
 @dataclass
 class ChatSettings:

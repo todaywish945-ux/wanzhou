@@ -2341,6 +2341,70 @@ def test_connection_test_happy_path(tmp_path):
         server.server_close()
 
 
+# ------------------------------------------------ 凭据体检（2026-11-28 latin-1 事故）
+def test_dirty_api_key_is_rejected_before_any_request(monkeypatch):
+    """密钥混入非英文字符时，发送侧直接给中文报错，绝不发出请求。
+
+    背景（2026-11-28 用户实测）：粘贴 Key 时把页面文字/中文标注一起带进来，
+    http.client 编码 Authorization 头时抛出英文的
+    ``'latin-1' codec can't encode ...``，用户完全看不懂也无处下手。
+    """
+    from pet.chat.models import api_key_problem
+    from pet.chat.providers import OpenAICompatibleProvider
+
+    def forbidden_urlopen(*args, **kwargs):
+        raise AssertionError("凭据体检失败时不该发出网络请求")
+
+    monkeypatch.setattr(urllib.request, "urlopen", forbidden_urlopen)
+    dirty = "sk-" + "a" * 21 + "密钥已复制"
+    assert "非英文字符" in api_key_problem(dirty)
+    cfg = ProviderConfig("t", base_url="https://api.example.com/v1", model="m", api_key=dirty)
+    provider = OpenAICompatibleProvider()
+    with pytest.raises(ProviderError) as excinfo:
+        list(provider.stream([{"role": "user", "content": "hi"}], cfg, threading.Event()))
+    assert "非英文字符" in str(excinfo.value)
+
+
+def test_dirty_endpoint_url_is_rejected_before_any_request(monkeypatch):
+    from pet.chat.models import endpoint_url_problem
+    from pet.chat.providers import OpenAICompatibleProvider, test_connection
+
+    def forbidden_urlopen(*args, **kwargs):
+        raise AssertionError("地址体检失败时不该发出网络请求")
+
+    monkeypatch.setattr(urllib.request, "urlopen", forbidden_urlopen)
+    assert "http" in endpoint_url_problem("api.example.com/v1")
+    assert "非英文字符" in endpoint_url_problem("https://api.example.com/v1（备注）")
+    assert endpoint_url_problem("https://api.example.com/v1") == ""
+    cfg = ProviderConfig("t", base_url="api.example.com/v1", model="m", api_key="x" * 24)
+    ok, msg = test_connection(cfg)
+    assert ok is False and "http://" in msg
+    provider = OpenAICompatibleProvider()
+    with pytest.raises(ProviderError):
+        list(provider.stream([{"role": "user", "content": "hi"}], cfg, threading.Event()))
+
+
+def test_connection_test_rejects_dirty_key_without_network(monkeypatch):
+    from pet.chat.providers import test_connection
+
+    def forbidden_urlopen(*args, **kwargs):
+        raise AssertionError("不该发出网络请求")
+
+    monkeypatch.setattr(urllib.request, "urlopen", forbidden_urlopen)
+    cfg = ProviderConfig("t", base_url="https://api.example.com/v1", model="m", api_key="sk-ok" + "中文字")
+    ok, msg = test_connection(cfg)
+    assert ok is False
+    assert "非英文字符" in msg
+
+
+def test_sanitize_api_key_strips_invisible_paste_noise():
+    from pet.chat.models import api_key_problem, sanitize_api_key
+
+    assert sanitize_api_key("  \ufeffsk-abc123\u200b  ") == "sk-abc123"
+    assert api_key_problem("sk-abc123") == ""
+    assert api_key_problem("") == ""
+
+
 def test_stream_surfaces_certificate_hint(monkeypatch):
     from pet.chat.providers import OpenAICompatibleProvider
 
@@ -2351,8 +2415,9 @@ def test_stream_surfaces_certificate_hint(monkeypatch):
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     provider = OpenAICompatibleProvider()
+    cfg = ProviderConfig("t", api_key="k" * 24)  # 带 Key，否则在凭据体检就被拦，到不了 urlopen
     with pytest.raises(ProviderError) as excinfo:
-        list(provider.stream([{"role": "user", "content": "hi"}], ProviderConfig("t"), threading.Event()))
+        list(provider.stream([{"role": "user", "content": "hi"}], cfg, threading.Event()))
     assert "网络连接失败" in str(excinfo.value)
     assert "跳过 SSL 证书验证" in str(excinfo.value)
 
@@ -2366,9 +2431,48 @@ def test_connection_test_reports_certificate_hint(monkeypatch):
         )
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    ok, msg = test_connection(ProviderConfig("t"))
+    ok, msg = test_connection(ProviderConfig("t", api_key="k" * 24))
     assert ok is False
     assert "跳过 SSL 证书验证" in msg
+
+
+def test_keyless_remote_request_is_rejected_with_guidance(monkeypatch):
+    """远程端点 + 没配 Key：就地给中文指引，不发出请求。
+
+    背景（2026-11-28 早上实测）：出厂默认配置指向智谱端点且无 Key，
+    请求不带 Authorization，服务器回 401 code=1001
+    「Header中未收到Authorization参数，无法进行身份验证」。
+    """
+    from pet.chat.providers import test_connection
+
+    def forbidden_urlopen(*args, **kwargs):
+        raise AssertionError("没配 Key 时不该发出网络请求")
+
+    monkeypatch.setattr(urllib.request, "urlopen", forbidden_urlopen)
+    ok, msg = test_connection(ProviderConfig("t"))  # 默认 base_url 是远程端点
+    assert ok is False
+    assert "还没有配置 API Key" in msg
+    # 本机端点允许不带 Key（本地网关的合法用法）：不发提示、真的走到 urlopen
+    cfg_local = ProviderConfig("t", base_url="http://127.0.0.1:9/v1", model="m")
+
+    def fake_urlopen(*args, **kwargs):
+        raise urllib.error.URLError(OSError("connection refused"))
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    ok2, msg2 = test_connection(cfg_local)
+    assert ok2 is False
+    assert "还没有配置" not in msg2
+
+
+def test_is_local_endpoint_recognizes_lan_gateways():
+    from pet.chat.providers import _is_local_endpoint
+
+    assert _is_local_endpoint("http://127.0.0.1:8642/v1/chat/completions")
+    assert _is_local_endpoint("http://localhost/v1")
+    assert _is_local_endpoint("http://192.168.1.5:1234/v1")
+    assert _is_local_endpoint("http://10.0.0.2:8080/v1")
+    assert not _is_local_endpoint("https://api.siliconflow.cn/v1/chat/completions")
+    assert not _is_local_endpoint("https://open.bigmodel.cn/api/paas/v4/chat/completions")
 
 
 def test_connection_test_reentrant_clicks_do_not_duplicate_requests(tmp_path, monkeypatch):
