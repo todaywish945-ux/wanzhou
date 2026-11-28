@@ -188,9 +188,13 @@ class UpdatePage(QWidget):
     def download_and_install(self) -> None:
         if self._busy or self.release is None:
             return
-        asset = updater.select_windows_installer(self.release, include_chat=self.include_chat)
+        # 与启用路径同口径：便携 zip（带 size/sha256）优先，其次 Inno Setup。
+        # 之前这里只查安装包，便携包发布形态下按钮亮着、点了却报
+        # 「没有可用的 Windows 安装包」（v1.03→v1.04 一键更新实测翻车）。
+        asset = updater.select_portable_archive(self.release) or updater.select_windows_installer(
+            self.release, include_chat=self.include_chat)
         if asset is None:
-            self._set_state("没有可用的 Windows 安装包，请打开下载页。", checking=False)
+            self._set_state("没有可用的更新包，请打开下载页。", checking=False)
             return
         self._busy = True
         self.check_button.setEnabled(False)

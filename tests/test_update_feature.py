@@ -182,3 +182,64 @@ def test_update_page_enables_install_for_portable_zip(tmp_path, monkeypatch):
         assert "自动替换" in page.status_label.text()
     finally:
         page.close()
+
+
+def test_update_page_click_prefers_portable_zip(tmp_path, monkeypatch):
+    """回归：便携包发布形态下点「下载并安装」必须走 zip 流程。
+
+    v1.03→v1.04 实测翻车：启用路径按「便携 zip 优先」亮按钮，点击路径却
+    只查 Inno Setup 安装包 → 报「没有可用的 Windows 安装包」。两个选择器
+    必须同口径；本用例让安装包选择器直接炸响，证明点击路径不再碰它。
+    """
+    import time
+    from pathlib import Path
+
+    from pet import updater
+    from pet.config import Config
+    from pet.update_settings import UpdatePage
+
+    _qapp()
+    release = {
+        "version": "9.99",
+        "html_url": "https://github.com/todaywish945-ux/wanzhou/releases/tag/v9.99",
+        "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v9.99/wanzhou-9.99-portable.zip",
+        "notes": "新版",
+        "assets": {},
+        "asset_details": {
+            "wanzhou-9.99-portable.zip": {
+                "name": "wanzhou-9.99-portable.zip",
+                "url": "https://github.com/todaywish945-ux/wanzhou/releases/download/v9.99/wanzhou-9.99-portable.zip",
+                "size": 123,
+                "sha256": "a" * 64,
+            }
+        },
+    }
+    monkeypatch.setattr(updater, "can_auto_install", lambda: True)
+
+    def _forbidden(release, include_chat=True):
+        raise AssertionError("便携 zip 存在时，点击路径不得再选 Windows 安装包")
+
+    monkeypatch.setattr(updater, "select_windows_installer", _forbidden)
+    staged = []
+
+    def _fake_stage(asset, config_dir, progress=None):
+        staged.append(asset)
+        out = Path(tmp_path) / "updates" / "staging" / "wanzhou-9.99-portable.zip"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"zip")
+        return out
+
+    monkeypatch.setattr(updater, "stage_portable_update", _fake_stage)
+    page = UpdatePage(Config(tmp_path))
+    try:
+        page._on_check_finished(release)
+        assert page.install_button.isEnabled() is True
+        page.download_and_install()
+        deadline = time.time() + 2.0
+        while time.time() < deadline and not staged:
+            QApplication.processEvents()
+            time.sleep(0.02)
+        assert staged, "便携下载流程未被触发"
+        assert "没有可用的 Windows 安装包" not in page.status_label.text()
+    finally:
+        page.close()
