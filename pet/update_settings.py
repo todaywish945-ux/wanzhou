@@ -256,7 +256,11 @@ class UpdatePage(QWidget):
                     raise RuntimeError('当前不是冻结便携版，无法自动替换程序目录')
                 script = updater.write_portable_update_script(
                     result, app_dir, config_dir=self.config.dir)
-                updater.start_portable_update(script)
+                updater.start_portable_update(
+                    script,
+                    log_path=updater.update_cache_dir(self.config.dir) / 'portable-update.log',
+                    timeout=15.0,
+                )
                 message = "更新已准备好：桌宠将自动关闭、替换文件并重新启动。"
             else:
                 updater.start_installer(result)

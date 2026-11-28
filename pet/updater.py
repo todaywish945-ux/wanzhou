@@ -483,14 +483,46 @@ try {{
     return script
 
 
-def start_portable_update(script: str | os.PathLike) -> None:
-    """以脱离父进程的方式启动更新脚本；父进程随后即可退出。"""
+def start_portable_update(script: str | os.PathLike, *, log_path: str | os.PathLike | None = None,
+                          timeout: float = 10.0) -> None:
+    """脱离父进程启动更新脚本，并**验证它真的跑起来了**。
+
+    实测（2026-11-28，v1.05 客户端）：DETACHED_PROCESS 直接 Popen powershell
+    在部分机器上静默不执行——Popen 成功返回、脚本一行日志没写、旧目录原封
+    不动，界面停在「更新已准备好」（用户视角=更新卡死）。修法：启动后盯脚本
+    日志，timeout 秒内没出现 'update script started' 就换 ``cmd /c start`` 宿主
+    再启动一次（绕开任务对象/AV 对分离进程的拦截）；两种宿主都没起来才抛错
+    如实上报。脚本自身有备份/回滚/幂等清理，重复实例无害。
+    """
+    import time as _time
+
+    script_path = Path(script)
     flags = getattr(subprocess, 'DETACHED_PROCESS', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
-    subprocess.Popen(
-        ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(script)],
-        cwd=str(Path(script).parent), close_fds=True, creationflags=flags,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    base = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(script_path)]
+    attempts = (
+        base,
+        ['cmd', '/c', 'start', '', *base],
     )
+    deadline = _time.monotonic() + timeout
+    for cmd in attempts:
+        if log_path is not None:
+            try:
+                Path(log_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+        subprocess.Popen(cmd, cwd=str(script_path.parent), close_fds=True,
+                         creationflags=flags, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
+        if log_path is None:
+            return  # 未提供日志路径则无法验证，维持旧行为（尽力而为）
+        while _time.monotonic() < deadline:
+            try:
+                if 'update script started' in Path(log_path).read_text(encoding='utf-8', errors='replace'):
+                    return
+            except OSError:
+                pass
+            _time.sleep(0.2)
+    raise RuntimeError('更新脚本未能启动（两种宿主均静默失败），请打开下载页手动更新')
 
 
 def can_auto_install() -> bool:

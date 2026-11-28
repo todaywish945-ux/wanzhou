@@ -459,3 +459,46 @@ def test_latest_release_prefers_fresh_mirror_when_versions_tie(monkeypatch):
     release = updater.latest_release()
     assert release["version"] == "1.03"
     assert "gh-proxy" in release["download_url"]
+
+
+def test_start_portable_update_verifies_script_started(tmp_path, monkeypatch):
+    """第四层防线：脱离启动必须验证脚本真的跑起来了。
+
+    实测 DETACHED Popen 在部分机器静默不执行（Popen 成功、脚本一行日志没写、
+    目录原封不动，界面停在「更新已准备好」）。启动后盯日志 10 秒，没起来就
+    换 cmd /c start 宿主重试；两种宿主都失败才抛错。
+    """
+    import time as _time
+
+    from pet import updater
+
+    script = tmp_path / "wanzhou-update-test.ps1"
+    script.write_text("echo stub", encoding="utf-8")
+    log = tmp_path / "portable-update.log"
+
+    spawned = []
+
+    class _FakePopen:
+        def __init__(self, cmd, **kwargs):
+            spawned.append(cmd)
+
+    monkeypatch.setattr(updater.subprocess, "Popen", _FakePopen)
+
+    # 第一次 Popen 后日志出现 → 直接成功，不重试
+    def _write_log():
+        log.write_text("update script started", encoding="utf-8")
+    monkeypatch.setattr(updater.Path, "read_text",
+                        lambda self, *a, **k: "update script started", raising=False)
+    updater.start_portable_update(script, log_path=log, timeout=0.5)
+    assert len(spawned) == 1, "日志已出现就不应换宿主重试"
+
+    # 日志始终不出现 → 换 cmd /c start 重试 → 仍失败 → 如实抛错
+    spawned.clear()
+    monkeypatch.setattr(updater.Path, "read_text",
+                        lambda self, *a, **k: (_ for _ in ()).throw(OSError()), raising=False)
+    try:
+        updater.start_portable_update(script, log_path=log, timeout=0.6)
+        raise AssertionError("两种宿主都静默失败时应当抛错")
+    except RuntimeError as exc:
+        assert "未能启动" in str(exc)
+    assert len(spawned) == 2, "失败后应换 cmd /c start 宿主重试一次"
