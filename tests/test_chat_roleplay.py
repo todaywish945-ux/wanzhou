@@ -903,3 +903,49 @@ def test_settings_save_routes_roleplay_keys_to_each_slot(tmp_path, monkeypatch, 
     assert "roleplay_scene" not in main
     assert "roleplay_cast" not in main
     assert "roleplay_enabled" not in main
+
+
+def test_ai_page_key_field_shows_keyring_state(tmp_path, monkeypatch):
+    """API Key 输入框不回显秘密（安全设计），但空框必须可判读。
+
+    用户误报 top1：「Key 写进去重启就没了」——实际 Key 在系统钥匙串里，
+    字段只是永不回显。回归：钥匙串有存 → 占位文案明示已保存；没有 →
+    明示尚未保存。用桩替身隔离机器全局凭据库（真实后端往返已在
+    venv 冒烟里单独验证）。
+    """
+    pytest.importorskip("PySide6")
+    from PySide6.QtWidgets import QApplication
+
+    from pet.config import Config
+    from pet.chat.ai_settings_page import _AiSettingsPage as AISettingsPage
+
+    QApplication.instance() or QApplication([])
+    cfg = Config(tmp_path)
+    page = AISettingsPage(cfg)
+    try:
+        provider = page.settings.active_config
+        ref = provider.api_key_ref or f"provider/{provider.provider_id}"
+
+        class _StubStore:
+            data = {}
+
+            def get(self, key):
+                return _StubStore.data.get(key, "")
+
+            def set(self, key, value):
+                _StubStore.data[key] = value
+                return True
+
+        monkeypatch.setattr(page, "_secret_store_type", _StubStore)
+
+        _StubStore.data.pop(ref, None)
+        page._load_provider_ui(provider.provider_id)
+        assert page.key.text() == "", "秘密永不回显"
+        assert page.key.placeholderText() == "尚未保存，填入后将存入系统钥匙串"
+
+        _StubStore.data[ref] = "sk-test-1234"
+        page._load_provider_ui(provider.provider_id)
+        assert page.key.text() == ""
+        assert page.key.placeholderText() == "已保存到系统钥匙串；留空 = 保持不变"
+    finally:
+        page.close()

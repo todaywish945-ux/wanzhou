@@ -363,6 +363,11 @@ class _AiSettingsPage(QWidget):
         self.url.setText(draft.get("base_url") if draft.get("base_url") is not None else p.base_url)
         self.model.setText(draft.get("model") if draft.get("model") is not None else p.model)
         self.key.clear()
+        # Key 字段出于安全永不回显（clear）；但"空"必须可判读：钥匙串里有存就
+        # 用占位文案明说，否则用户重开设置看到空框会以为 Key 丢了（误报 top1）。
+        stored = self._secret_store_type().get(p.api_key_ref)
+        self.key.setPlaceholderText(
+            "已保存到系统钥匙串；留空 = 保持不变" if stored else "尚未保存，填入后将存入系统钥匙串")
         self.timeout.setValue(int(draft.get("timeout", p.timeout)))
         self.temperature.setValue(float(draft.get("temperature", p.temperature)))
         self.tokens.setValue(int(draft.get("max_tokens", p.max_tokens)))
@@ -370,6 +375,9 @@ class _AiSettingsPage(QWidget):
         self.vision_same.setChecked(bool(draft.get("vision_same_as_chat", p.vision_same_as_chat)))
         self.vision_url.setText(draft.get("vision_base_url", p.vision_base_url))
         self.vision_key.clear()
+        vstored = self._secret_store_type().get(p.vision_api_key_ref)
+        self.vision_key.setPlaceholderText(
+            "已保存到系统钥匙串；留空 = 保持不变" if vstored else "尚未保存，填入后将存入系统钥匙串")
         self.skip_ssl.setChecked(not bool(draft.get("verify_ssl", p.verify_ssl)))
         self.thinking_mode.setCurrentData(draft.get("thinking", p.thinking))
         self.reasoning_effort.setCurrentData(draft.get("reasoning_effort", p.reasoning_effort))
