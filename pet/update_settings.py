@@ -23,6 +23,30 @@ from PySide6.QtWidgets import (
 from . import __version__, updater
 
 
+def _stage_update(full_stage, *, delta_asset, app_dir, config_dir, progress):
+    """增量优先的一站式暂存：delta 资产可用且 from==当前版本则差分，否则全量。
+
+    差分任何一步失败（本地漂移/差分损坏/IO）都回退全量包——增量是纯增益，
+    全量是兜底；绝不让「更新失败」变成「更新把程序弄坏」。
+    """
+    import sys
+
+    from . import delta_update
+
+    current = str(updater.APP_VERSION).lstrip("vV")
+    if (delta_asset
+            and str(delta_asset.get("from", "")).lstrip("vV") == current
+            and app_dir is not None and (Path(app_dir) / "wanzhou-pet.exe").is_file()):
+        try:
+            logging.info("尝试文件级差分更新：%s → %s",
+                         delta_asset.get("from"), delta_asset.get("to"))
+            return delta_update.stage_delta_update(
+                delta_asset, app_dir, config_dir, progress=progress)
+        except Exception:
+            logging.warning("差分更新失败，回退全量包", exc_info=True)
+    return full_stage()
+
+
 class UpdatePage(QWidget):
     """检查、下载并安装更新；不写入 Config，避免把一次性命令变成设置项。"""
 
@@ -186,6 +210,8 @@ class UpdatePage(QWidget):
         self._set_state(state, checking=False)
 
     def download_and_install(self) -> None:
+        import sys
+
         if self._busy or self.release is None:
             return
         # 与启用路径同口径：便携 zip（带 size/sha256）优先，其次 Inno Setup。
@@ -209,8 +235,17 @@ class UpdatePage(QWidget):
             try:
                 if portable:
                     # 下载 + 校验 + 解压到暂存目录；不碰正在运行的程序目录。
-                    result = updater.stage_portable_update(
-                        asset, self.config.dir,
+                    # 文件级差分优先（delta 资产 from == 当前版本才走），
+                    # 任何一步对不上回退全量——增量是纯增益，全量是兜底。
+                    result = _stage_update(
+                        lambda: updater.stage_portable_update(
+                            asset, self.config.dir,
+                            progress=lambda current, total: self.download_progress.emit(current, total or 0),
+                        ),
+                        delta_asset=self.release.get("delta") if self.release else None,
+                        app_dir=Path(sys.executable).resolve().parent
+                        if getattr(sys, "frozen", False) else None,
+                        config_dir=self.config.dir,
                         progress=lambda current, total: self.download_progress.emit(current, total or 0),
                     )
                 else:

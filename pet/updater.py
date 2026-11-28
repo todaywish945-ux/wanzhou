@@ -180,6 +180,8 @@ def _release_from_payload(data: dict) -> dict | None:
         'notes': str(data.get('notes') or ''),
         'assets': assets,
         'asset_details': asset_details,
+        # 文件级差分更新（v1.07+）：from 必须等于客户端当前版本才走增量。
+        'delta': data.get('delta') if isinstance(data.get('delta'), dict) else None,
     }
 
 

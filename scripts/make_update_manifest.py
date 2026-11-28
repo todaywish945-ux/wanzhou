@@ -79,6 +79,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--download-code", default="", help="网盘提取码，没有就留空")
     parser.add_argument("--archive", type=Path,
                         help="现成源码 zip；不给就用 --pack-source 现场打一个")
+    parser.add_argument("--delta", type=Path,
+                        help="文件级差分包（wanzhou-<版本>-delta-from-<上一版>.zip）；"
+                             "提供 --delta-from 时写入 update.json 的 delta 字段")
+    parser.add_argument("--delta-from", type=str,
+                        help="差分基线版本（用户当前最可能的版本，如 1.06）")
     parser.add_argument("--pack-source", action="store_true",
                         help="从仓库根打源码 zip 到 dist/")
     parser.add_argument("--repo", default=REPO, help="发布仓库，默认 %(default)s")
@@ -119,6 +124,25 @@ def main(argv: list[str] | None = None) -> int:
             "kind": "portable",
         }
 
+    if bool(args.delta) != bool(args.delta_from):
+        parser.error("--delta 与 --delta-from 必须成对提供")
+    delta_payload = None
+    if args.delta is not None:
+        if not args.delta.is_file():
+            parser.error(f"差分包不存在：{args.delta}")
+        delta_from = str(args.delta_from).strip().lstrip("vV")
+        if not re.fullmatch(r"\d+(\.\d+)*", delta_from):
+            parser.error(f"差分基线版本号非法：{args.delta_from!r}")
+        delta_payload = {
+            "from": delta_from,
+            "to": version,
+            "fileName": args.delta.name,
+            "urls": [download_url.replace(
+                f"/releases/download/v{version}/", f"/releases/download/v{version}/")],
+            "size": args.delta.stat().st_size,
+            "sha256": _sha256(args.delta),
+        }
+
     manifest = args.manifest
     if manifest.is_file():
         try:
@@ -131,6 +155,11 @@ def main(argv: list[str] | None = None) -> int:
         data = {}
     data["version"] = version
     data["html_url"] = f"https://github.com/{args.repo}/releases"
+    if delta_payload is not None:
+        # 差分资产的镜像阶梯与全量包同源（download_url 是 gh-proxy 包装直链；
+        # 客户端 download_asset 会逐条尝试）。from 必须等于客户端当前版本，
+        # 否则客户端忽略 delta 走全量——版本数学在 pet/delta_update.py。
+        data["delta"] = delta_payload
     data["download_url"] = download_url
     data["download_code"] = str(args.download_code).strip()
     data["notes"] = notes

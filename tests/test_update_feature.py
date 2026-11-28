@@ -194,6 +194,8 @@ def test_update_page_click_prefers_portable_zip(tmp_path, monkeypatch):
     import time
     from pathlib import Path
 
+    from PySide6.QtWidgets import QApplication
+
     from pet import updater
     from pet.config import Config
     from pet.update_settings import UpdatePage

@@ -95,5 +95,35 @@ if (Test-Path $Zip) {
     Remove-Item $Zip -Force
 }
 Compress-Archive -Path $Bundle -DestinationPath $Zip -CompressionLevel Optimal
+
+Write-Host '== 文件级差分更新资产（清单 + 与上一版的差分包）=='
+$ManifestDir = Join-Path $Root 'manifests'
+$CurrentManifest = Join-Path $ManifestDir "manifest-$AppVersion.json"
+& $Python (Join-Path $Root 'scripts\make_file_manifest.py') --bundle $Bundle --version $AppVersion --out $CurrentManifest
+if ($LASTEXITCODE -ne 0) {
+    throw '文件清单生成失败'
+}
+# 差分基线 = manifest-*.json 里比当前版本旧的最高一份（常见：上一版）。
+# 没有历史清单（首次启用/全新版本线）就跳过差分，只出全量——不阻塞出包。
+$prevManifest = Get-ChildItem $ManifestDir -Filter 'manifest-*.json' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -ne "manifest-$AppVersion.json" } |
+    ForEach-Object {
+        if ($_.BaseName -match '^manifest-(.+)$') {
+            [pscustomobject]@{ Path = $_.FullName; Version = $Matches[1] }
+        }
+    } |
+    Sort-Object { [version]($_.Version -replace '^v', '') } -Descending |
+    Select-Object -First 1
+if ($prevManifest -ne $null) {
+    $DeltaZip = Join-Path $DistDir "wanzhou-$AppVersion-delta-from-$($prevManifest.Version).zip"
+    & $Python (Join-Path $Root 'scripts\make_delta_zip.py') --from $prevManifest.Path --to $CurrentManifest --bundle $Bundle --out $DeltaZip
+    if ($LASTEXITCODE -ne 0) {
+        throw '差分包生成失败'
+    }
+    Write-Host "差分包就绪：$DeltaZip (baseline $($prevManifest.Version))"
+} else {
+    Write-Host 'manifests/ 里没有历史清单，跳过差分包（只出全量）'
+}
+
 Write-Host "完成：$Zip"
 Write-Host '双击解压目录里的 wanzhou-pet.exe 即可同时出现三只桌宠。'
