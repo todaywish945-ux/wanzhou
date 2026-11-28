@@ -1,20 +1,20 @@
 {
   "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像，最后 GitHub raw 直链兜底）；客户端取所有镜像中的最高版本，防止某节点缓存旧版卡住通知；全部取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 gh-proxy 镜像包装后的 GitHub Release zip 直链（国内可直连打开；原始直链在 assets[].urls 最后一条）；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
-  "version": "1.07",
+  "version": "1.08",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
+  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-portable.zip",
   "download_code": "",
-  "notes": "修复：一键更新「下载并安装」的最后两处死点（完成回调误判 + 替换脚本静默不执行）——从本版本起，一键更新全链路可用。新增：文件级差分更新——之后的版本更新只下载变化文件（本次 1.06→1.07 差分包仅 17MB，全量包 459MB）。附差分包 wanzhou-1.07-delta-from-1.06.zip；1.03–1.06 用户本次仍需手动更新一次（打开下载页下载 zip 解压覆盖，配置不会丢），1.07 起一键更新永久可用。",
+  "notes": "新增「按厂商添加」：智谱 / 硅基流动 / DeepSeek / Kimi / 通义千问 / 火山引擎（豆包）/ 本地模型（Ollama）七家预设，选厂商自动带出官方地址和推荐模型，贴上 API Key 就能用，不再需要手抄地址。\n\n修复装了火绒、360 等安全软件的电脑上「启动绝区零」直接报「启动失败：[WinError 5] 拒绝访问」的问题（安全软件把进程装进 Job 后，启动游戏不再因此失败）。\n\n「启动绝区零」升级为子菜单：直接显示游戏当前位置；游戏搬家后可手动指定新位置（选择框里支持直接粘贴完整路径）；自动探测失效时也能顺势指路，不再只是报\"没找到\"。\n\nAPI Key 体验修复：已保存的 Key 显示 **** 掩码、不再\"看起来丢了\"；Key 和所选服务商不是一家时保存前会提醒（比如把智谱的 Key 配到硅基流动地址）；聊天报 401 时给出人话解释和排查指引；换新 Key 后所有角色立即生效，不再出现\"设置换了、角色还用旧 Key\"。\n\n台词语音修复：出厂试听音色不再覆盖自己配置的音色；编辑台词后声音自动重新准备。\n\n1.07 用户可一键更新；1.06 及更早版本仍需手动更新一次（下载 zip 解压覆盖，配置不丢）。",
   "assets": {
-    "wanzhou-1.07-portable.zip": {
-      "fileName": "wanzhou-1.07-portable.zip",
+    "wanzhou-1.08-portable.zip": {
+      "fileName": "wanzhou-1.08-portable.zip",
       "urls": [
-        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
-        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
-        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip"
+        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-portable.zip",
+        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-portable.zip",
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-portable.zip"
       ],
-      "size": 459526201,
-      "sha256": "38e039383e7b73c7b44c16d08ab56370c04f4694a67cce37f3a1d9cac960d1b1",
+      "size": 459534548,
+      "sha256": "81554f41940304241ee6ef5e29b68323ee7c8dad77a018436a7d4b9e41ca8e09",
       "platform": "windows",
       "kind": "portable"
     }
@@ -41,15 +41,15 @@
     "7. 只有一键更新才需要 size / sha256 + 可信域名白名单；没有校验值时仍写入清单作为完整性记录，但按钮禁用。"
   ],
   "delta": {
-    "from": "1.06",
-    "to": "1.07",
-    "fileName": "wanzhou-1.07-delta-from-1.06.zip",
+    "from": "1.07",
+    "to": "1.08",
+    "fileName": "wanzhou-1.08-delta-from-1.07.zip",
     "urls": [
-      "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip",
-      "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip",
-      "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip"
+      "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-delta-from-1.07.zip",
+      "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-delta-from-1.07.zip",
+      "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.08/wanzhou-1.08-delta-from-1.07.zip"
     ],
-    "size": 17441114,
-    "sha256": "b3012fea75c8efb62f78042fa16203e7ebaa4dece551d64b144eca01ee4ab062"
+    "size": 17449459,
+    "sha256": "0d7d803d8173386c5d74122e1a5cd46c4c5bf8610d29c9e0f8a21849412f5245"
   }
 }
