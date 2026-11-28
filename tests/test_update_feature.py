@@ -224,9 +224,12 @@ def test_update_page_click_prefers_portable_zip(tmp_path, monkeypatch):
 
     def _fake_stage(asset, config_dir, progress=None):
         staged.append(asset)
-        out = Path(tmp_path) / "updates" / "staging" / "wanzhou-9.99-portable.zip"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_bytes(b"zip")
+        # **真实形状**：stage_portable_update 返回解压根目录（staging/wanzhou-pet，
+        # 目录、名字没有 .zip 后缀）。此前桩造了个 .zip 路径，恰好骗过完成回调的
+        # 旧判别（要求 .zip 后缀），把真实流程的死分支糊弄过去了——回归教训。
+        out = Path(tmp_path) / "updates" / "staging" / "wanzhou-pet"
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "wanzhou-pet.exe").write_bytes(b"MZ")
         return out
 
     monkeypatch.setattr(updater, "stage_portable_update", _fake_stage)

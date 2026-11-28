@@ -241,7 +241,14 @@ class UpdatePage(QWidget):
             self._set_state(f"下载或校验失败：{result}", checking=False)
             return
         try:
-            if str(result.name).lower().endswith('.zip') and result.parent.name == 'staging':
+            # 便携流程的完成态 = stage_portable_update 返回的**解压根目录**
+            # （staging/wanzhou-pet，目录名没有 .zip 后缀）。此前按
+            # 「名字以 .zip 结尾」判别，真实返回永远不满足 → 走安装器分支抛
+            # 「无法启动更新」（一键更新第三层洋葱：下载/校验/解压全成功，
+            # 死在最后一步的分支判断上）。目录判据：在 staging 下的即是便携产物。
+            result_path = Path(result)
+            portable = result_path.parent.name == 'staging' and result_path.is_dir()
+            if portable:
                 # 便携包：写独立脚本（不在程序目录里），脚本等桌宠退出后替换目录。
                 import sys
                 app_dir = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) else None
