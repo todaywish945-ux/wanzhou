@@ -804,3 +804,4 @@ def test_producer_output_is_what_the_click_path_plays(tmp_path, fake_tts):
     assert played == [str(produced)]
     assert produced != stv.cache_path(cfg.dir, "好女孩……"), "注册表产物按 flavor 命名"
     assert shell.self_talk_voice_file("好女孩……") == produced
+

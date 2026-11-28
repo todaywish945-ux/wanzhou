@@ -37,11 +37,28 @@ def seed_candidates() -> tuple[Path, ...]:
 
 
 def seed_dir() -> Path | None:
-    """第一个真实存在的种子目录；没有就返回 None（不报错、不影响启动）。"""
+    """第一个真实存在的种子目录；没有就返回 None、不影响启动。"""
     for candidate in seed_candidates():
         if candidate.is_dir():
             return candidate
     return None
+
+
+def seed_file_names() -> frozenset[str]:
+    """包内种子 wav 的文件名 stem 集合（= 出厂台词文本的 md5[:16]）。
+
+    供 ``self_talk._classic_audio`` 识别"这句的缓存文件其实是出厂录音"：
+    种子录音是作者声线，不该盖过用户自己配置的合成音色（删除台词回退
+    内置台词后声线突变的根因，见 ``self_talk`` 模块注释）。包里没有种子
+    目录就返回空集合，查找侧零影响。
+    """
+    source = seed_dir()
+    if source is None:
+        return frozenset()
+    try:
+        return frozenset(p.stem for p in source.glob("*.wav"))
+    except OSError:
+        return frozenset()
 
 
 def seed_voice_cache(config_dir: Path | str) -> int:

@@ -25,7 +25,11 @@
   旧句子不会被当成"已缓存"，点击也不会命中另一把嗓子；
 - 外部产出脚本（``F:\\dsh\\tts\\build_self_talk_voice.py``）与自建服务覆盖模式没有
   flavor，仍按纯文本命中（``cache_path`` 的老算法），**不能**因升级作废；但它也
-  不能凌驾于当前配置生成的产物之上（否则换了音色仍旧播老声音）。
+  不能凌驾于当前配置生成的产物之上（否则换了音色仍旧播老声音）；
+- **随包种子录音**（``voice/seed`` 复制的出厂台词 wav）就在经典缓存里，无条件
+  可命中——台词音频都是作者预先训练/录制好的，项目没有实时合成能力，这些
+  wav 是台词唯一的声源（2026-11-28 起台词池固定 + 勾选播报，见
+  ``pet.self_talk_library``）。
 
 扩展名由产出它的后端决定（edge/doubao → mp3，sapi/mimo 与外部脚本 → wav）；
 经典缓存的查找按 ``<md5>.*`` 枚举，不认死扩展名，外部脚本那份 wav 照样命中。
@@ -137,11 +141,16 @@ def _has_audio(path: Path) -> bool:
 
 
 def _classic_audio(config_dir, text: str) -> Path | None:
-    """经典文本缓存（外部脚本 / 自建服务产出）：按 ``<md5>.*`` 枚举。
+    """经典文本缓存（外部脚本 / 自建服务 / 出厂种子录音）：按 ``<md5>.*`` 枚举。
 
     按 ``<md5>.*`` 枚举而不是拼死一个扩展名：扩展名由产出它的后端决定（mp3/wav），
     点击侧不该关心是谁合的。临时文件以 ``.`` 开头（见 ``_temp_path``），不进这个
     模式，所以在飞的合成不会被误当命中。
+
+    **种子录音无条件参与命中**：台词音频全部是作者预先训练/录制好放进包里的
+    （``voice/seed``），项目没有实时合成能力——这些 wav 就是台词唯一的声源，
+    无论用户配置了什么后端都必须能命中（曾经试过"有配置合成链就让种子让位"，
+    实际只会让配了后端但服务没开的用户彻底没声音）。
     """
     target = cache_path(config_dir, text)
     for path in sorted(target.parent.glob(f"{target.stem}.*")):
@@ -165,7 +174,8 @@ def cached_audio(config_dir, text: str, attempts=()) -> Path | None:
     顺序是**当前配置的产物 → 经典文本缓存**：``attempts`` 是当前配置解析出的合成
     尝试（``_flavor_attempts`` / ``_attempts``），按它们的 flavor 键先找；都没有才
     落回纯文本的经典缓存（外部脚本那条来源）。``attempts`` 为空时只看经典缓存，
-    那是"没有配置上下文"的调用方的语义。
+    那是"没有配置上下文"的调用方的语义。经典缓存包含随包种子录音——台词音频
+    都是预录好的，它无条件可命中（见 :func:`_classic_audio`）。
     """
     stripped = str(text).strip()
     return (_flavor_audio(config_dir, stripped, attempts)
@@ -209,6 +219,12 @@ def collect_lines(config) -> list[tuple[str, str]]:
     ``config`` 必须是**这只宠**的配置视图（每宠键要走 slot 档案）：主配置那份只是
     slot0 的兜底，拿它统一读会让别的宠在 slot0 的名单上生成。
     返回 ``[(文本, 来源说明), ...]``；来源只用于日志，方便核对"这句是哪来的"。
+
+    自言自语读**全局台词库**（``self_talk_library.texts_for``，按这只宠的角色取）：
+    台词库迁移后它才是唯一真源，每宠配置键 ``self_talk_texts`` 是迁移时留下的
+    死快照、用户此后在台词管理里的增删都不会同步进去——名单还读那个键的话，
+    用户改过的台词永远拿不到预缓存，只能回退在线合成（或命中出厂种子录音）。
+    库读不了再回退每宠键，最后是空名单，行为不比从前差。
     """
     out: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -219,10 +235,27 @@ def collect_lines(config) -> list[tuple[str, str]]:
             seen.add(stripped)
             out.append((stripped, source))
 
+    character_id = ""
     try:
-        texts = config.get("self_talk_texts") or []
+        character_id = str(config.get("character") or "")
     except Exception:
-        texts = []
+        character_id = ""
+    texts: list = []
+    if character_id:
+        try:
+            from ..self_talk_library import library_path, texts_for
+            # 库文件存在才读：库是启动时 ensure_library 建好的唯一真源；文件不存在
+            # 说明从未建库/迁移（测试 tmp_path、老配置目录），每宠键仍是真源，
+            # 此时也不该有 ensure_library 的"凭空建库"副作用改写名单。
+            if library_path(getattr(config, "dir", "")).is_file():
+                texts = texts_for(getattr(config, "dir", ""), character_id)
+        except Exception:
+            texts = []
+    if not texts:
+        try:
+            texts = config.get("self_talk_texts") or []
+        except Exception:
+            texts = []
     for text in texts:
         add(text, "全局自言自语")
 

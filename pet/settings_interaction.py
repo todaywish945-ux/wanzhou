@@ -126,10 +126,11 @@ def build_self_talk_rows(dialog) -> list[SettingRow]:
         SettingRow("self_talk_duration", "显示时间", "每条文字或图片气泡保持显示的时间。", dialog.self_talk_duration_spin),
         SettingRow("self_talk_min", "最短间隔", "上一条气泡消失后，到下一条出现前的最短空闲时间。", dialog.min_spin),
         SettingRow("self_talk_max", "最长间隔", "上一条气泡消失后，到下一条出现前的最长空闲时间。", dialog.max_spin),
-        SettingRow("self_talk_texts", "候选内容", "每行一条；留空时恢复内置文本。", dialog.texts_edit, stacked=True),
+        # 台词候选不再开放编辑：音频是预录的，改文字必然对不上声音。勾选播报
+        # 的入口就是下面这行「管理所有角色台词」（self_talk_manager 对话框）。
         SettingRow(
             "self_talk_manage", "管理所有角色台词",
-            "一个入口查看/修改三只桌宠各自的台词（角色下拉切换），独立保存、不受「应用到其他桌宠」覆盖；保存即生效。",
+            "台词由作者配音，暂不支持修改文字；勾选控制每句是否播报（默认全部播报），角色下拉分别设置。",
             dialog.self_talk_manage_btn,
         ),
         SettingRow(

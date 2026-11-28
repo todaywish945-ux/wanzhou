@@ -1,30 +1,43 @@
 # -*- coding: utf-8 -*-
-"""台词管理对话框——一个入口查看/修改所有角色的自言自语台词。
+"""台词管理对话框——固定台词的勾选播报面板。
 
-与 AI 记忆管理同款：对话框顶部一个角色下拉，切换即加载该角色的台词；保存到
-全局台词库（``pet.self_talk_library``），因此打开任何一只桌宠的设置都能管理全部
-角色，且不受「应用到其他桌宠」影响。
+台词池是**固定的**（``self_talk_library``：台词音频全部由作者预先训练/录制，
+项目暂无实时合成能力，改文字必然配上不对的声音）。本对话框不再提供文本编辑：
+每句固定台词一个勾选项，取消勾选的句子不再播报（``self_talk_disabled.json``），
+默认全部勾选。顶部角色下拉切换角色，各自独立勾选；「把当前勾选应用到全部角色」
+把这只的勾选状态复制给其余角色。
 """
 from __future__ import annotations
 
+import logging
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
-    QPlainTextEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
 )
 
+from .config import DEFAULT_SELF_TALK_TEXTS_BY_ROLE
 from .pet_visibility import PET_IDS
 from . import self_talk_library as lib
 
+logger = logging.getLogger("dsh-pet-standalone")
+
 
 class SelfTalkManagerDialog(QDialog):
-    def __init__(self, config, parent=None):
+    def __init__(self, config, parent=None, on_saved=None):
         super().__init__(parent)
         self.config = config
+        # 勾选变化后的回调（可选）：设置页用它接「重新预缓存台词语音」。
+        # 台词池固定、音频预录，勾选只影响"名单里有没有这句"，已有缓存无害；
+        # 回调保留给未来的合成能力接线，对话框关闭时触发一次。
+        self._on_saved = on_saved
         self.setObjectName("self-talk-manager-dialog")
         self.setWindowTitle("管理所有角色的台词")
         self.setMinimumWidth(460)
@@ -33,9 +46,9 @@ class SelfTalkManagerDialog(QDialog):
         root.setSpacing(10)
 
         hint = QLabel(
-            "在这里管理三只桌宠各自的自言自语台词。打开任何一只的设置都能查看和修改"
-            "全部角色；台词独立保存，不会被「应用到其他桌宠」覆盖。切换角色后编辑、"
-            "点「保存」即生效（无需重启）。每行一条，留空恢复内置台词。",
+            "台词由作者配音，暂不支持修改文字。每句台词可勾选是否播报："
+            "取消勾选后这句话不再说出口，默认全部播报。切换角色可分别设置，"
+            "不会被「应用到其他桌宠」覆盖。",
             self,
         )
         hint.setWordWrap(True)
@@ -65,92 +78,102 @@ class SelfTalkManagerDialog(QDialog):
         top.addStretch(1)
         root.addLayout(top)
 
-        self.editor = QPlainTextEdit(self)
-        self.editor.setObjectName("self-talk-editor")
-        self.editor.setMinimumHeight(200)
-        root.addWidget(self.editor)
+        self.line_list = QListWidget(self)
+        self.line_list.setObjectName("self-talk-line-list")
+        self.line_list.setWordWrap(True)
+        self.line_list.setMinimumHeight(220)
+        root.addWidget(self.line_list)
 
         footer = QHBoxLayout()
-        self.copy_all_btn = QPushButton("把当前角色的台词应用到全部角色", self)
-        self.copy_all_btn.setProperty("variant", "ghost")
-        self.copy_all_btn.clicked.connect(self._copy_to_all)
-        footer.addWidget(self.copy_all_btn)
+        self.reset_btn = QPushButton("恢复全部播报", self)
+        self.reset_btn.setProperty("variant", "ghost")
+        self.reset_btn.clicked.connect(self._reset_all_checked)
+        footer.addWidget(self.reset_btn)
         footer.addStretch(1)
-        cancel_btn = QPushButton("取消", self)
-        cancel_btn.clicked.connect(self.reject)
-        footer.addWidget(cancel_btn)
-        save_btn = QPushButton("保存", self)
-        save_btn.setObjectName("self-talk-save-btn")
-        save_btn.clicked.connect(self._save)
-        footer.addWidget(save_btn)
+        done_btn = QPushButton("完成", self)
+        done_btn.setObjectName("self-talk-done-btn")
+        done_btn.clicked.connect(self.accept)
+        footer.addWidget(done_btn)
         root.addLayout(footer)
 
+        self.line_list.itemChanged.connect(self._on_item_changed)
         self._load_current()
-        self._dirty = False
-        self.editor.textChanged.connect(self._mark_dirty)
 
     # ------------------------------------------------------------------ 内部
     def _current_role(self) -> str:
         return str(self.role_combo.currentData() or "")
 
-    def _editor_texts(self) -> list[str]:
-        return [line.strip() for line in self.editor.toPlainText().splitlines() if line.strip()]
+    def _disabled_texts(self) -> list[str]:
+        """当前列表里未勾选的台词 = 取消播报集合。"""
+        return [item.text() for item in _iter_items(self.line_list)
+                if item.checkState() != Qt.Checked]
 
     def _load_current(self) -> None:
+        """按固定台词池 + 已存勾选状态重建列表；程序性勾选不触发保存。"""
         role = self._current_role()
         if not role:
             return
-        texts = lib.texts_for(getattr(self.config, "dir", ""), role)
-        self.editor.blockSignals(True)
-        self.editor.setPlainText("\n".join(texts))
-        self.editor.blockSignals(False)
+        fixed = list(DEFAULT_SELF_TALK_TEXTS_BY_ROLE.get(role, []))
+        disabled = set(lib.disabled_texts_for(getattr(self.config, "dir", ""), role))
+        self.line_list.blockSignals(True)
+        self.line_list.clear()
+        for text in fixed:
+            item = QListWidgetItem(text)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Unchecked if text in disabled else Qt.Checked)
+            self.line_list.addItem(item)
+        self.line_list.blockSignals(False)
         self.setWindowTitle(f"管理台词 - {self.role_combo.currentText()}")
-        self._dirty = False
 
-    def _mark_dirty(self) -> None:
-        self._dirty = True
+    def _on_item_changed(self, item) -> None:
+        """勾选即存：重算未勾选集合落盘。程序性变更由 blockSignals 挡住。"""
+        role = self._current_role()
+        if not role:
+            return
+        try:
+            lib.set_disabled_texts(getattr(self.config, "dir", ""), role,
+                                   self._disabled_texts())
+        except Exception:
+            logger.warning("台词勾选保存失败", exc_info=True)
 
     def _on_role_changed(self, index: int) -> None:
-        if self._dirty:
-            # 切角色前自动保存当前编辑，避免丢失输入
-            self._save_current()
+        # 勾选即时落盘，切角色不需要先保存
         self._load_current()
 
-    def _save_current(self) -> None:
+    def _reset_all_checked(self) -> None:
+        """清空本角色的取消勾选记录 = 全部恢复播报。
+
+        三角固定池文本互不相同，没有"把勾选复制给其他角色"的合理语义；
+        这里只重置当前角色，其他角色不动。
+        """
         role = self._current_role()
         if not role:
             return
         try:
-            lib.update_texts(getattr(self.config, "dir", ""), role, self._editor_texts())
+            lib.set_disabled_texts(getattr(self.config, "dir", ""), role, [])
         except Exception:
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self, "保存失败", "台词未能保存，请检查配置目录权限后重试。")
+            logger.warning("台词勾选重置失败", exc_info=True)
             return
-        self._dirty = False
+        self._load_current()
 
-    def _save(self) -> None:
-        self._save_current()
-        self.accept()
-
-    def _copy_to_all(self) -> None:
-        from PySide6.QtWidgets import QMessageBox
-        texts = self._editor_texts()
-        if not texts:
-            QMessageBox.information(self, "无内容", "当前编辑框为空，没有可复制的台词。")
-            return
-        answer = QMessageBox.question(
-            self, "确认",
-            f"把当前角色的 {len(texts)} 条台词复制到全部 {len(PET_IDS)} 只桌宠？"
-            "各角色原本的台词会被覆盖。",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if answer != QMessageBox.Yes:
+    def _notify_saved(self) -> None:
+        callback = self._on_saved
+        if not callable(callback):
             return
         try:
-            for cid in PET_IDS:
-                lib.update_texts(getattr(self.config, "dir", ""), cid, texts)
+            callback()
         except Exception:
-            QMessageBox.warning(self, "保存失败", "台词未能保存，请检查配置目录权限后重试。")
-            return
-        self._dirty = False
-        QMessageBox.information(self, "完成", "台词已应用到全部角色。")
+            logger.warning("台词勾选后的预缓存回调失败（不影响台词本身）", exc_info=True)
+
+    def accept(self) -> None:
+        self._notify_saved()
+        super().accept()
+
+    def reject(self) -> None:
+        # 关闭（含 Esc）同样通知：勾选是即时落盘的，关闭只是触发一次回调
+        self._notify_saved()
+        super().reject()
+
+
+def _iter_items(list_widget):
+    return (list_widget.item(i) for i in range(list_widget.count()))

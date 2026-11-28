@@ -365,19 +365,8 @@ def build_pet_controls(host) -> None:
         spin.setDecimals(0)
         spin.setSuffix(" 秒")
         spin.setValue(float(value))
-    host.texts_edit = QPlainTextEdit(host)
-    host.texts_edit.setMinimumSize(240, 82)
-    host.texts_edit.setMaximumHeight(170)
-    # 台词真源已从每宠 config 键迁到全局台词库（按角色索引）。这里按当前角色读库，
-    # 与「管理所有角色台词」对话框共用同一份数据；缺库时回退 config 键/默认。
-    try:
-        from . import self_talk_library as _stl
-        _cid = str(host.config.get("character") or "")
-        texts = _stl.texts_for(host.config.dir, _cid) if _cid else host.config.get(
-            "self_talk_texts", DEFAULT_SELF_TALK_TEXTS)
-    except Exception:
-        texts = host.config.get("self_talk_texts", DEFAULT_SELF_TALK_TEXTS)
-    host.texts_edit.setPlainText("\n".join(str(item) for item in texts))
+    # 台词候选不再开放编辑（音频预录，见 self_talk_library 模块注释）：
+    # 勾选播报入口是「管理所有角色台词」对话框，这里不再创建 texts_edit。
     host.self_talk_image_dir_picker = ResourcePathPicker(
         str(host.config.get("self_talk_image_dir", "") or ""),
         directory=True,

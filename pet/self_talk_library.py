@@ -14,6 +14,12 @@
 
 读取侧缺角色/缺文件时回退到出厂默认台词；首次访问会从旧的每宠配置
 ``config-slot-N.json`` 把台词迁移进来（一次性，迁移后本文件为唯一真源）。
+
+**2026-11-28 起台词池固定**：台词音频是作者预先训练/录制好放进包里的，项目暂无
+实时合成能力——用户改文字必然配上不对的声音。所以 ``texts_for`` 改为返回**固定
+出厂台词**，用户唯一可动的是"这句要不要播报"的勾选（``self_talk_disabled.json``，
+只存被取消勾选的句子，缺省全勾选）。本文件（历史编辑/迁移产物）**保留在盘上但
+不再被 ``texts_for`` 读取**，开放编辑前是死数据。
 """
 from __future__ import annotations
 
@@ -27,12 +33,17 @@ from .pet_visibility import PET_IDS
 logger = logging.getLogger(__name__)
 
 LIB_FILENAME = "self_talk_texts.json"
+#: 取消勾选（不播报）的固定台词；只存被关掉的句子，缺文件/缺角色 = 全部勾选。
+DISABLED_FILENAME = "self_talk_disabled.json"
 
 __all__ = [
+    "DISABLED_FILENAME",
     "LIB_FILENAME",
     "all_texts",
+    "disabled_texts_for",
     "ensure_library",
     "library_path",
+    "set_disabled_texts",
     "texts_for",
     "update_texts",
     "validate_texts",
@@ -41,6 +52,10 @@ __all__ = [
 
 def library_path(config_dir: Path | str) -> Path:
     return Path(config_dir) / LIB_FILENAME
+
+
+def disabled_path(config_dir: Path | str) -> Path:
+    return Path(config_dir) / DISABLED_FILENAME
 
 
 def validate_texts(value) -> list[str]:
@@ -125,14 +140,54 @@ def all_texts(config_dir: Path | str) -> dict[str, list[str]]:
 
 
 def texts_for(config_dir: Path | str, character_id: str) -> list[str]:
-    """读某个角色的台词；缺档/缺角色回退出厂默认。"""
-    ensure_library(config_dir)
-    data, status = read_json_dict(library_path(config_dir))
-    if status == "ok" and data:
-        cleaned = validate_texts(data.get(str(character_id)))
-        if cleaned:
-            return cleaned
-    return _defaults_for(character_id)
+    """某角色**当前会播报**的台词：固定出厂台词 − 用户取消勾选的句子。
+
+    台词池是**固定的**（``DEFAULT_SELF_TALK_TEXTS_BY_ROLE``）：台词音频都是作者
+    预先训练/录制好放进包里的，项目暂无实时合成能力，用户改文字必然配上不对的
+    声音（甚至没有声音），所以文案与台词池都锁死，只开放"这句要不要播报"的
+    勾选。旧全局库文件（``self_talk_texts.json``，历史编辑/迁移产物）**保留在盘
+    上但不再读取**——开放编辑前它是死数据，绝不静默丢弃用户写过的东西。
+
+    取消勾选的句子记录在 ``self_talk_disabled.json``（只存"被关掉"的那些，缺省
+    即全部勾选）；缺档/坏档按全勾选处理。
+    """
+    fixed = _defaults_for(character_id)
+    disabled = set(disabled_texts_for(config_dir, character_id))
+    return [text for text in fixed if text not in disabled]
+
+
+def disabled_texts_for(config_dir: Path | str, character_id: str) -> list[str]:
+    """某角色被取消勾选（不播报）的固定台词；坏档/缺档一律按全勾选处理。"""
+    data, status = read_json_dict(disabled_path(config_dir))
+    if status != "ok" or not data:
+        return []
+    return [t for t in validate_texts(data.get(str(character_id))) if t in _defaults_for(character_id)]
+
+
+def set_disabled_texts(config_dir: Path | str, character_id: str, texts) -> list[str]:
+    """写某角色取消勾选的台词（只影响该角色）；返回写下去的清洗结果。
+
+    只接受**固定台词池里存在的句子**——台词池锁死后，写进来一句池里没有的
+    文本只会是脏数据，直接丢弃。
+    """
+    cid = str(character_id)
+    if cid not in PET_IDS:
+        raise ValueError(f"未知角色 id: {cid}")
+    fixed = set(_defaults_for(cid))
+    cleaned = [t for t in validate_texts(texts) if t in fixed]
+    config_dir = Path(config_dir)
+
+    def _mutate(current: dict) -> dict:
+        out = dict(current)
+        out[cid] = cleaned
+        return out
+
+    try:
+        locked_update_json(disabled_path(config_dir), _mutate,
+                           on_broken="replace", default_factory=dict)
+    except ConfigWriteError:
+        logger.warning("取消勾选台词写入失败（保持上一次状态）: %s", config_dir)
+    return cleaned
 
 
 def update_texts(config_dir: Path | str, character_id: str, texts) -> list[str]:

@@ -988,6 +988,8 @@ class PetInstance:
                 include_ai=self.enable_chat,
                 initial_page=initial_page,
                 chat_build_capable=self.chat_build_capable,
+                self_talk_saved_hook=lambda: self.shell.precache_self_talk_voice(
+                    "台词管理保存后"),
             )
             dialog.finished.connect(self._modern_settings_finished)
             self.modern_settings_dialog = dialog

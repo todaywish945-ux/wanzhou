@@ -74,3 +74,20 @@ def test_default_texts_are_per_role_and_distinct():
     assert not (set(groups[0]) & set(groups[1]))
     assert not (set(groups[0]) & set(groups[2]))
     assert not (set(groups[1]) & set(groups[2]))
+
+
+def test_seed_file_names_returns_stems(tmp_path, monkeypatch):
+    """seed_file_names 给查找侧识别出厂录音用：返回包内种子 wav 的 stem 集合。"""
+    seed_dir = tmp_path / "seed"
+    seed_dir.mkdir()
+    (seed_dir / "abc123.wav").write_bytes(_wav_bytes())
+    (seed_dir / "def456.wav").write_bytes(_wav_bytes())
+    monkeypatch.setattr(seed, "seed_dir", lambda: seed_dir)
+
+    assert seed.seed_file_names() == frozenset({"abc123", "def456"})
+
+
+def test_seed_file_names_empty_when_no_seed_dir(tmp_path, monkeypatch):
+    """包里没有种子目录（异常包体）→ 空集合，查找侧零影响。"""
+    monkeypatch.setattr(seed, "seed_dir", lambda: None)
+    assert seed.seed_file_names() == frozenset()

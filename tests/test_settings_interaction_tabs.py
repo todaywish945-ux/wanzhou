@@ -40,7 +40,8 @@ ROWS_BY_TAB = {
     # 2026-11-24：点击侧自言自语从「点击与音效」搬到本标签，两类自言自语放一起。
     "self_talk": (
         "self_talk_bubble_style", "self_talk", "self_talk_duration", "self_talk_min",
-        "self_talk_max", "self_talk_texts", "self_talk_manage", "self_talk_images",
+        # self_talk_texts 行已随"台词池固定"退役（勾选播报并入 self_talk_manage）。
+        "self_talk_max", "self_talk_manage", "self_talk_images",
         "self_talk_image_scale", "self_talk_image_chance",
         "click_self_talk", "click_self_talk_speak",
         "click_self_talk_precache", "click_talk_bindings",
