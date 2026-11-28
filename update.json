@@ -1,20 +1,20 @@
 {
   "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像，最后 GitHub raw 直链兜底）；客户端取所有镜像中的最高版本，防止某节点缓存旧版卡住通知；全部取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 gh-proxy 镜像包装后的 GitHub Release zip 直链（国内可直连打开；原始直链在 assets[].urls 最后一条）；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
-  "version": "1.06",
+  "version": "1.07",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.06/wanzhou-1.06-portable.zip",
+  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
   "download_code": "",
-  "notes": "改进：AI 设置页的 API Key 输入框现在会显示钥匙串状态（「已保存到系统钥匙串；留空 = 保持不变」/「尚未保存」）——Key 本体一直存在 Windows 凭据管理器里，输入框出于安全从不回显，此前空框让不少用户误以为 Key 丢了。 若「下载并安装」不可用（旧版本客户端），点「打开下载页」下载 zip，解压后双击 wanzhou-pet.exe 即可，配置不会丢。",
+  "notes": "修复：一键更新「下载并安装」的最后两处死点（完成回调误判 + 替换脚本静默不执行）——从本版本起，一键更新全链路可用。新增：文件级差分更新——之后的版本更新只下载变化文件（本次 1.06→1.07 差分包仅 17MB，全量包 459MB）。附差分包 wanzhou-1.07-delta-from-1.06.zip；1.03–1.06 用户本次仍需手动更新一次（打开下载页下载 zip 解压覆盖，配置不会丢），1.07 起一键更新永久可用。",
   "assets": {
-    "wanzhou-1.06-portable.zip": {
-      "fileName": "wanzhou-1.06-portable.zip",
+    "wanzhou-1.07-portable.zip": {
+      "fileName": "wanzhou-1.07-portable.zip",
       "urls": [
-        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.06/wanzhou-1.06-portable.zip",
-        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.06/wanzhou-1.06-portable.zip",
-        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.06/wanzhou-1.06-portable.zip"
+        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
+        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip",
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-portable.zip"
       ],
-      "size": 459512725,
-      "sha256": "4b3c591604b81224149a3ab378a7e4b304b7b8c09e74a929f5088b0d63b33dc3",
+      "size": 459526201,
+      "sha256": "38e039383e7b73c7b44c16d08ab56370c04f4694a67cce37f3a1d9cac960d1b1",
       "platform": "windows",
       "kind": "portable"
     }
@@ -39,5 +39,17 @@
     "5. 把本文件提交到 main 分支根目录；jsDelivr 首次同步可能要几分钟。老用户每 12 小时（启动后 10 秒 + 运行中定时）读一次本文件，发现新版本会弹可点击通知，点开更新窗即可一键更新。",
     "6. 自检：download_url 必须是 https；assets 里是带 size / sha256 的便携 zip（kind=portable），客户端据此启用『下载并安装』一键更新（下载校验→独立脚本替换程序目录→重启三只）；没有校验信息时才降级为『打开下载页』手动更新。",
     "7. 只有一键更新才需要 size / sha256 + 可信域名白名单；没有校验值时仍写入清单作为完整性记录，但按钮禁用。"
-  ]
+  ],
+  "delta": {
+    "from": "1.06",
+    "to": "1.07",
+    "fileName": "wanzhou-1.07-delta-from-1.06.zip",
+    "urls": [
+      "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip",
+      "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip",
+      "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.07/wanzhou-1.07-delta-from-1.06.zip"
+    ],
+    "size": 17441114,
+    "sha256": "b3012fea75c8efb62f78042fa16203e7ebaa4dece551d64b144eca01ee4ab062"
+  }
 }
