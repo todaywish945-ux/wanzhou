@@ -1,20 +1,20 @@
 {
   "_readme": "挽昼桌宠更新清单（版本真源）。文件名与路径必须是仓库根目录的 update.json —— 客户端先读 https://cdn.jsdelivr.net/gh/todaywish945-ux/wanzhou@main/update.json （失败依次换 fastly / gcore 镜像，最后 GitHub raw 直链兜底）；客户端取所有镜像中的最高版本，防止某节点缓存旧版卡住通知；全部取不到才回退 GitHub Releases API。仓库里遗留的上游 v4.4.x Tag 不能拿来当本项目的版本，所以绝不能让 API 抢在清单前面。download_url 指向 gh-proxy 镜像包装后的 GitHub Release zip 直链（国内可直连打开；原始直链在 assets[].urls 最后一条）；download_code 留给需要提取码的第三方分发渠道，本项目为空。当前 version 与客户端 __version__ 一致。真正的版本号只看顶层 version 字段；_asset_example / _publish_steps 是给开发者看的历史说明，里面的 <版本> 是占位符，不是实际版本。",
-  "version": "1.04",
+  "version": "1.05",
   "html_url": "https://github.com/todaywish945-ux/wanzhou/releases",
-  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.04/wanzhou-1.04-portable.zip",
+  "download_url": "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.05/wanzhou-1.05-portable.zip",
   "download_code": "",
-  "notes": "修复：骗子酒馆开局桌宠不入座（联动事件统一走 %APPDATA%，打包形态写盘失败被静默吞掉的问题）；边缘探头关闭后又自己打开（宠物侧开关现在同步主配置，三只一起跟随）。移除：直播捕获兼容模式（设置入口此前已下线，本次清除底层残留）。菜单：网盘下载入口从夸克切换为百度网盘。 若「下载并安装」不可用（旧版本客户端），点「打开下载页」下载 zip，解压后双击 wanzhou-pet.exe 即可，配置不会丢。",
+  "notes": "修复：「下载并安装」一键更新点不动（v1.03→v1.04 升级实测翻车的那条：点击路径现在与按钮启用同口径，便携包优先）；重启后桌宠位置漂移（退出时正在散步/抛掷/牌局入座，临时位置不再覆盖你摆放的位置）。若「下载并安装」不可用（旧版本客户端），点「打开下载页」下载 zip，解压后双击 wanzhou-pet.exe 即可，配置不会丢。",
   "assets": {
-    "wanzhou-1.04-portable.zip": {
-      "fileName": "wanzhou-1.04-portable.zip",
+    "wanzhou-1.05-portable.zip": {
+      "fileName": "wanzhou-1.05-portable.zip",
       "urls": [
-        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.04/wanzhou-1.04-portable.zip",
-        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.04/wanzhou-1.04-portable.zip",
-        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.04/wanzhou-1.04-portable.zip"
+        "https://gh-proxy.com/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.05/wanzhou-1.05-portable.zip",
+        "https://ghproxy.net/https://github.com/todaywish945-ux/wanzhou/releases/download/v1.05/wanzhou-1.05-portable.zip",
+        "https://github.com/todaywish945-ux/wanzhou/releases/download/v1.05/wanzhou-1.05-portable.zip"
       ],
-      "size": 459511680,
-      "sha256": "fc291889140e1f02095ecf4aed8ea9551c274c7622784e0449615c1be2f9806d",
+      "size": 459512477,
+      "sha256": "1ac46fd2c29bca5b117debb4b00c49b004210d614847da6ce5114cfeec65aee7",
       "platform": "windows",
       "kind": "portable"
     }
