@@ -173,11 +173,10 @@ def _no_real_dsh_profile_write(monkeypatch):
 def _isolate_topology_config(tmp_path, monkeypatch):
     """拓扑判定的**配置输入**每测隔离到临时目录（T4 Phase A）。
 
-    渲染拓扑自 T4 起会读主配置 ``stream_capture_mode``（``overlay_settings_command``
-    的 ``_default_base()/APP_DIR_NAME/config.json``）。测试进程若真去读，结果就
-    取决于跑测试这台机器上的用户配置：开发机勾过捕获模式 ⇒ 所有"默认 overlay"
-    的断言在这种机器上变红，而 CI 上永远绿——测试失去意义。故把目录解析这一层
-    钉到 ``tmp_path``（空目录 ⇒ 配置缺失 ⇒ 默认 overlay），并清掉快照缓存。
+    拓扑判定（``is_overlay_topology``）会经 ``pet.config._default_base`` 读到
+    开发机的真实用户配置。测试进程若真去读，结果就取决于跑测试这台机器上的
+    用户配置——测试失去意义。故把目录解析这一层钉到 ``tmp_path``（空目录 ⇒
+    配置缺失 ⇒ 默认拓扑），并清掉快照缓存。
 
     钉的是 ``overlay_settings_command`` 复用的那个 seam（``pet.config._default_base``
     经本模块的模块级绑定），所以用例仍可自行覆盖：测试体内再

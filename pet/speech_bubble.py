@@ -325,8 +325,6 @@ class PetSpeechBubble(QFrame):
     def __init__(self, parent=None, style_id: str = "classic_top"):
         super().__init__(parent)
         self._interactive = False
-        self._capture_compat = False
-        self._capture_host: QWidget | None = None
         # 置顶跟随宿主「桌面置顶」设置（set_host_on_top）：宿主不置顶时气泡
         # 也不置顶，否则宠物被其他窗口挡住、气泡却浮在最上层。
         self._host_on_top = True
@@ -818,54 +816,17 @@ class PetSpeechBubble(QFrame):
             self.show()
 
     def set_host_on_top(self, on: bool) -> None:
-        """跟随宿主「桌面置顶」开关。capture 兼容模式是主窗子控件，无窗口旗标，跳过。"""
+        """跟随宿主「桌面置顶」开关同步气泡窗口旗标。"""
         on = bool(on)
         if on == self._host_on_top:
             return
         self._host_on_top = on
-        if self._capture_compat:
-            return
         self._apply_window_flags()
 
     def set_interactive(self, on: bool) -> None:
         """开启后气泡可被鼠标点击（用于触发快速对话），默认全透明穿透。"""
         self._interactive = bool(on)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, not self._interactive)
-
-    def set_capture_compat(self, on: bool, host: QWidget | None = None) -> None:
-        """直播捕获兼容：把气泡作为桌宠主窗的子内容渲染（issue #62）。
-
-        开启后气泡不再是独立 Tool 窗口，而成为主窗子控件；OBS/直播姬捕获
-        主窗时即可看到气泡。放置可用区从整个屏幕收窄为主窗矩形，避免子控件
-        越出主窗边界被裁掉。关闭后恢复原独立置顶 Tool 窗口形态。
-        """
-        on = bool(on)
-        if on == self._capture_compat:
-            return
-        if on and host is None:
-            return
-        was_visible = self.isVisible()
-        self._capture_compat = on
-        if on:
-            self._capture_host = host
-            self.setWindowFlags(Qt.WindowType.Widget)
-            self.setParent(host)
-        else:
-            self._capture_host = None
-            self.setParent(None)
-            self._apply_window_flags()
-            if _MAC:
-                self.setAttribute(Qt.WidgetAttribute.WA_MacAlwaysShowToolWindow, True)
-        if not self._anchor_rect.isEmpty():
-            self._place(self._anchor_rect)
-        if was_visible:
-            self.show()
-            if not on and not _MAC:
-                self.raise_()
-        else:
-            # 子模式重挂到主窗后，Qt 会随父窗显示把未显式隐藏的子控件一起显示；
-            # 启动期/无内容时不能因此冒出空白小气泡。
-            self.hide()
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: N802
         if self._interactive and event.button() == Qt.MouseButton.LeftButton:
@@ -1353,17 +1314,13 @@ class PetSpeechBubble(QFrame):
         self._place(anchor_rect, animate=False)
 
     def _available_geometry(self, anchor_rect: QRect) -> QRect | None:
-        """气泡可用区：普通模式取所在屏幕，直播捕获子模式收窄为主窗矩形。
+        """气泡可用区：取气泡锚点所在屏幕的工作区。
 
-        捕获子模式下气泡是主窗子控件，只有落在主窗矩形内才不会被裁掉；
         ``_place`` 与自适应列宽共用同一口径。
         """
         screen = QGuiApplication.screenAt(anchor_rect.center()) or QGuiApplication.primaryScreen()
         if screen is None:
             return None
-        host = self._capture_host if self._capture_compat else None
-        if host is not None and not host.geometry().isEmpty():
-            return host.geometry()
         return screen.availableGeometry()
 
     def _column_for_text(self, text: str, anchor_rect: QRect) -> int:
@@ -1389,7 +1346,6 @@ class PetSpeechBubble(QFrame):
         return max(1, min(column, feasible))
 
     def _place(self, anchor_rect: QRect, *, animate: bool = True) -> None:
-        host = self._capture_host if self._capture_compat else None
         avail = self._available_geometry(anchor_rect)
         if avail is None:
             return
@@ -1416,10 +1372,7 @@ class PetSpeechBubble(QFrame):
             top = min(max(top, avail.top()), avail.bottom() - rect.height() + 1)
             rect.moveTop(top)
         self._anchor_rect = QRect(anchor_rect)
-        if host is not None:
-            target = host.mapFromGlobal(rect.topLeft())
-        else:
-            target = rect.topLeft()
+        target = rect.topLeft()
         if animate:
             self._move_smooth(target)
         else:
@@ -1517,10 +1470,10 @@ class PetSpeechBubble(QFrame):
             )
             self._tail_tip = QPointF(local.right() - 4, tip_y)
         else:
-            # 重叠兜底：capture 子模式（stream_capture_mode）下气泡只能落在主窗
-            # 矩形内，空间不足时会压在桌宠身上，此时上面四个"完全不重叠"的分支
-            # 全部失效、一律走这里。改用中心判定，保证三角指向桌宠所在的一侧，
-            # 而不是无条件朝上（实机表现为「三角指向了桌宠的反方向」）。
+            # 重叠兜底：气泡被屏幕边缘或桌宠挤到与锚点矩形重叠时，上面四个
+            # "完全不重叠"的分支全部失效、一律走这里。改用中心判定，保证三角
+            # 指向桌宠所在的一侧，而不是无条件朝上（实机表现为「三角指向了
+            # 桌宠的反方向」）。
             # 这里 anchor_center 与 local 都是本窗口局部坐标，不存在坐标系混用。
             # 按**主导方向**选边：只看 y 会把"桌宠在侧边"误判成上下
             # （实测：桌宠贴屏幕顶且气泡被挤到它右侧时，anchor 中心 y 偏下，

@@ -138,9 +138,6 @@ def _resolve_self_talk_image_dir(raw: str) -> str:
     return str(resolve_fun_asset(raw, oijingjing_image_path().parent))
 
 
-# 直播捕获兼容模式下窗口标题（普通顶层窗口需要可见标题，供直播姬/OBS 选择）
-STREAM_CAPTURE_TITLE = '挽昼桌宠'
-
 IDLE = "IDLE"
 DRAGGING = "DRAGGING"
 SLINGSHOT_AIMING = "SLINGSHOT_AIMING"
@@ -177,24 +174,18 @@ _FRAME_FP_REFRESH_SECS = 2.0
 _FRAME_FP_BLOCK = 64  # 头部/尾部各取 64 字节做弱指纹（webm 头尾都含结构信息）
 
 
-def build_window_flags(config, mouse_through: bool = False, stream_capture_mode: bool = False):
+def build_window_flags(config, mouse_through: bool = False):
     """构造桌宠窗口 flags。
 
-    默认形态：FramelessWindowHint | Tool（Windows 上映射 WS_EX_TOOLWINDOW，
-    不进任务栏/Alt+Tab，但直播姬、OBS 等窗口捕获软件会过滤掉 Tool 窗口）。
-    开启直播捕获兼容模式后改用普通顶层窗口（Window）并设置标题，
-    使窗口出现在捕获软件的可选窗口列表里；代价是任务栏会显示图标。
+    形态：FramelessWindowHint | Tool（Windows 上映射 WS_EX_TOOLWINDOW，
+    不进任务栏/Alt+Tab）。
     """
-    if stream_capture_mode:
-        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window
-    else:
-        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
+    flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
     if config.get('on_top', True):
         flags |= Qt.WindowType.WindowStaysOnTopHint
     if mouse_through:
         flags |= Qt.WindowType.WindowTransparentForInput
-    # macOS 关窗口系统阴影（issue #229：外圈黑边，普通模式与直播捕获模式都要关）。
-    # 放在 flags 工厂里：捕获模式开关重算 flags 时自动带上，无需在显示后补写。
+    # macOS 关窗口系统阴影（issue #229：外圈黑边）。
     flags |= _mac_no_window_shadow_flag()
     return flags
 
@@ -335,7 +326,7 @@ def _content_frame_rect(pet) -> QRect:
     if delta is None:
         delta = QPoint(0, 0)
     return QRect(delta.x(),
-                 delta.y() + getattr(pet, "_capture_headroom", 0) + int(round(catalog.PAD * pet.scale)),
+                 delta.y() + int(round(catalog.PAD * pet.scale)),
                  int(round(catalog.CANVAS_W * pet.scale)),
                  int(round(catalog.CANVAS_H * pet.scale)))
 
@@ -546,24 +537,13 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         self.cursor_visibility_changed.connect(self._on_cursor_visibility_changed)
 
         # ---- 窗口属性：无边框 + 透明 + 不进任务栏；置顶可配置 ----
-        # 直播捕获兼容模式（stream_capture_mode）：Tool → 普通顶层窗口 + 标题，
-        # 使直播姬/OBS 的窗口捕获能枚举到桌宠（Tool 窗口会被捕获软件过滤）。
-        # 有效值由拓扑模块归并：主配置的捕获开关压过本窗配置（T4 Phase A；否则
-        # --slot N 的窗在捕获模式的 legacy 拓扑里仍是 Tool，OBS 枚举不到）。
-        from . import _removed as overlay_settings_command
-        self._stream_capture_mode = overlay_settings_command.effective_stream_capture_mode(
-            config.get('stream_capture_mode', False))
-        self._capture_headroom = 0  # 捕获子气泡需要的透明头顶空间（逻辑像素）
         self._draw_delta = QPoint(0, 0)  # 贴边绘制偏移（见类属性注释）
-        flags = build_window_flags(config, self.mouse_through, self._stream_capture_mode)
+        flags = build_window_flags(config, self.mouse_through)
         self.setWindowFlags(flags)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         # 透明桌宠不参与系统自动背景填充：减少偶发“频闪/背景闪一下”。
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        if self._stream_capture_mode:
-            self.setWindowTitle(STREAM_CAPTURE_TITLE)
-        self._speech_bubble.set_capture_compat(self._stream_capture_mode, host=self)
         # Cocoa hides Tool windows when an accessory application deactivates.
         # Visibility and z-order are separate: always keep the pet visible,
         # then use WindowStaysOnTopHint/NSWindow level for the on-top setting.
@@ -770,7 +750,7 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         # sync_optional_services() 自身以 _install_effect_services() 收尾。
         self.sync_optional_services()
 
-        # 骗子酒馆牌局联动（挽昼桌宠移植版）：轮询项目根的联动事件.json
+        # 骗子酒馆牌局联动（挽昼桌宠移植版）：轮询 APPDATA 同源的联动事件.json
         self._game_link = GameLink(self)
 
     @property
@@ -932,7 +912,6 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         """按缩放计算窗口尺寸：宽度 220×scale，高度 (124+落地偏移)×scale。"""
         self._w = max(1, int(round(catalog.CANVAS_W * self.scale)))
         self._h = max(1, int(round((catalog.CANVAS_H + catalog.PAD) * self.scale)))
-        self._h += getattr(self, "_capture_headroom", 0)
         self.setFixedSize(self._w, self._h)
 
     # ------------------------------------------------------------ 贴边（绘制补偿）
@@ -966,38 +945,6 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
     def _throw_bounds(self) -> tuple[float, float, float, float]:
         """抛掷/碰撞边界（虚拟窗口坐标）；实现见 window_placement.throw_bounds。"""
         return window_placement.throw_bounds(self)
-
-    def set_capture_headroom(self, headroom: int) -> bool:
-        """Set/clear capture headroom while preserving the character's feet."""
-        headroom = max(0, int(headroom))
-        if headroom == self._capture_headroom:
-            return False
-        probe = getattr(self, '_edge_probe', None)
-        probe_active = bool(probe is not None and getattr(probe, 'active', False))
-        vp_fn = getattr(self, '_virtual_pos', None)
-        sbr_fn = getattr(self, '_stable_body_local_rect', None)
-        mover = getattr(self, '_move_window_towards', None)
-        old_feet = None
-        if callable(vp_fn) and callable(sbr_fn) and callable(mover):
-            # 保持角色脚底不动（身体框底边）：虚拟坐标系下重落位
-            vp = vp_fn()
-            old_feet = vp.y() + sbr_fn().bottom()
-            self._capture_headroom = headroom
-            self._apply_scale()
-            if not probe_active:
-                mover(vp.x(), old_feet - sbr_fn().bottom())
-        else:
-            old_bottom = self.geometry().bottom()
-            self._capture_headroom = headroom
-            self._apply_scale()
-            self.move(self.x(), old_bottom - self._h + 1)
-        self._collision_local_bounds = None
-        self._collision_bounds_cache.clear()  # 画布几何变了，缓存全部作废
-        self._sync_mask()
-        self.update()
-        if probe_active:
-            self._probe_on_geometry_change(self.scale, old_feet)
-        return True
 
     def change_scale(self, scale: float, *, persist: bool = True) -> None:
         """切换缩放；保持角色脚底不动（身体框底边=脚踩的地面）。"""
@@ -1533,13 +1480,6 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
     def set_cursor_hidden_passthrough(self, *args, **kwargs):
         """Compatibility delegation (window_screen.set_cursor_hidden_passthrough)."""
         return window_screen.set_cursor_hidden_passthrough(self, *args, **kwargs)
-
-    def set_stream_capture_mode(self, *args, **kwargs):
-        """Compatibility delegation (window_screen.set_stream_capture_mode)."""
-        return window_screen.set_stream_capture_mode(self, *args, **kwargs)
-    def set_quick_chat_capture_widget(self, widget) -> None:
-        """Compatibility delegation (window_screen.set_quick_chat_capture_widget)."""
-        return window_screen.set_quick_chat_capture_widget(self, widget)
 
 
     def _arm_dock_reactivate_restore(self) -> None:
@@ -2326,10 +2266,7 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
             and getattr(bubble, "_interactive", False)
             and bubble.geometry().contains(local)
         ):
-            # 直播捕获子模式下，可点击气泡必须作为非透明命中区，否则逐像素穿透会把它当透明。
-            return False
-        quick = getattr(self, "_quick_chat_capture_widget", None)
-        if quick is not None and shiboken6.isValid(quick) and quick.isVisible() and quick.geometry().contains(local):
+            # 可点击气泡必须作为非透明命中区，否则逐像素穿透会把它当透明。
             return False
         if self._frame_pixmap is None or self._frame_pixmap.isNull():
             return False
@@ -3957,17 +3894,6 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         desired_auto_hide = bool(self.cfg.get('auto_hide_fullscreen', True))
         if desired_auto_hide != self.auto_hide_fullscreen:
             self.set_auto_hide_fullscreen(desired_auto_hide)
-        desired_stream_capture = bool(self.cfg.get('stream_capture_mode', False))
-        if desired_stream_capture != self._stream_capture_mode:
-            from . import _removed as overlay_settings_command
-            if overlay_settings_command.capture_switch_is_restart_level():
-                # T4：该键是重启级拓扑输入——运行期撤掉窗旗标会把正在被 OBS 捕获
-                # 的窗口当场变回 Tool（直播断源），与设置页「重启后生效」矛盾。
-                # 显式 env legacy（dev 逃生门）不走这条：那边保留即时切换。
-                logging.info(
-                    "直播捕获兼容：本次启动由主配置决定（重启级开关），改动重启后生效")
-            else:
-                self.set_stream_capture_mode(desired_stream_capture)
         desired_drag_physics = bool(self.cfg.get('drag_physics', False))
         if desired_drag_physics != self.drag_physics:
             self.set_drag_physics(desired_drag_physics)

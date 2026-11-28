@@ -19,7 +19,7 @@ from PySide6.QtWidgets import QMenu
 from .. import autostart as autostart_mod
 from .. import catalog
 from .. import feature_activation
-from ..updater import QUARK_PAN_URL as QUARK_PAN_URL, REPO_URL as REPO_URL
+from ..updater import BAIDU_PAN_URL as BAIDU_PAN_URL, REPO_URL as REPO_URL
 from .icons import fitted_pet_pixmap_icon, vector_menu_icon
 from .menu_styles.common import inherit_menu_style
 

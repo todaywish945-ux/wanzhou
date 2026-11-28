@@ -26,3 +26,6 @@ self_talk_voice/
 sounds_cache/
 voice_chime_cache/
 updates/
+
+# 运行时联动事件（骗子酒馆 ↔ 桌宠，0X0P+0PPDATA% 为契约主位置）
+联动事件.json

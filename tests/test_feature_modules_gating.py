@@ -2179,48 +2179,7 @@ def test_hidden_chat_row_follows_chat_module(tmp_path, monkeypatch):
         app.processEvents()
 
 
-# ---------------------------------------------------------------- 直播捕获 / 多屏跨屏
-@pytest.mark.skip(reason='移植后遗留失败：移植后已不适用')
-def test_stream_capture_row_absent_and_topology_off_when_inactive(tmp_path, monkeypatch):
-    """直播捕获模块关：设置行不出现、不写回；拓扑判定按未开启（配置开着也回落 overlay）。"""
-    import json
-
-    from pet.modern_settings_dialog import SettingRow
-    from pet.overlay_settings_command import _read_stream_capture_mode
-
-    _freeze_all_but("stream_capture")
-    app, dlg = _build_dialog(tmp_path, monkeypatch)
-    try:
-        assert dlg.findChild(SettingRow, "settingRow_stream_capture") is None
-        writes = []
-        orig_set = dlg.config.set
-        monkeypatch.setattr(dlg.config, "set",
-                            lambda k, v: (writes.append(k), orig_set(k, v))[1])
-        assert dlg._write_config()
-        assert "stream_capture_mode" not in writes
-    finally:
-        dlg.close()
-        app.processEvents()
-    # 拓扑：配置开着捕获、模块停用 → 按未开启（overlay）
-    cfg_path = tmp_path / "cfg.json"
-    cfg_path.write_text(json.dumps({"stream_capture_mode": True}), encoding="utf-8")
-    assert _read_stream_capture_mode(cfg_path) is False
-    fa.freeze_snapshot_for_tests(ALL_FEATURE_IDS)
-    assert _read_stream_capture_mode(cfg_path) is True
-
-
-def test_stream_capture_row_removed_from_settings(tmp_path, monkeypatch):
-    """直播兼容模式已从设置页删除（实测无收益），任何平台都不该再出现该行。"""
-    from pet.modern_settings_dialog import SettingRow
-
-    app, dlg = _build_dialog(tmp_path, monkeypatch)
-    try:
-        assert dlg.findChild(SettingRow, "settingRow_stream_capture") is None
-    finally:
-        dlg.close()
-        app.processEvents()
-
-
+# ---------------------------------------------------------------- 多屏跨屏
 def test_cross_screen_row_absent_and_save_skipped_when_inactive(tmp_path, monkeypatch):
     from pet.modern_settings_dialog import SettingRow
 
@@ -2293,10 +2252,10 @@ def test_every_action_and_key_has_single_owner():
 #: 新增菜单动作必须要么归进 features 清单、要么进这里——两边都不在就是
 #: 「漏登记 = 永不被门控」，这条守卫让它立刻红。改这份名单要带着理由改。
 CORE_MENU_ACTION_IDS = frozenset({
-    "animations_hub", "author_info", "autostart", "character", "check_update",
-    "deepseek_web", "drag_physics", "edge_probe", "github_project", "golden_spin",
-    "hide_pet", "modern_settings", "no_move", "wanzhou", "on_top", "playback_speed",
-    "quark_download", "quiet_mode", "quit", "return_corner", "size",
+    "animations_hub", "author_info", "autostart", "baidu_download", "character",
+    "check_update", "deepseek_web", "drag_physics", "edge_probe", "github_project",
+    "golden_spin", "hide_pet", "modern_settings", "no_move", "wanzhou", "on_top",
+    "playback_speed", "quiet_mode", "quit", "return_corner", "size",
 })
 
 

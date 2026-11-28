@@ -9,18 +9,12 @@
   预热（``app.py``：``prewarm_enabled=not idle_low_fps_enabled``）。legacy 的
   PetWindow 确实是降帧（``window.py`` 的 ``_idle_reduction_active`` +
   ``_sync_movie_throttle``），故文案按拓扑分流，legacy 原文案不动。
-- T2「直播捕获兼容」（``stream_capture_mode``）：文案曾声称 overlay 下「重启后
-  生效」但 overlay 全仓无消费者（``overlay_window`` 恒 FramelessTool、无
-  ``set_stream_capture_mode``）→ 当时改为置灰 + 如实说明。**T4 Phase A 复盘
-  落地**：该键成为拓扑输入（``overlay_settings_command.is_overlay_topology``
-  读主配置 ``stream_capture_mode``，进程内快照一次），勾选后重启真的走 legacy
-  单窗路径并收拢多宠，故撤销置灰、文案回到 T4 口径（重启后生效 + 多宠收拢）；
-  显式 ``PET_RENDER_TOPOLOGY=legacy`` 仍是运行期即时切换，逐字保留原提示。
-- T3 窗口级键（置顶/鼠标穿透/不透明度/锁定位置/SHIFT 拖拽/光标隐藏穿透/全屏
+- T2 窗口级键（置顶/鼠标穿透/不透明度/锁定位置/SHIFT 拖拽/光标隐藏穿透/全屏
   自动隐藏）在 overlay 一窗多宠下物理上只能整窗生效 → 每个 slot 设置页补一句
   「对所有桌宠生效」。**#271 起主宠页也在此列**：无 ``--instance`` 的空身份设置
   会话按 slot0 分流，主宠页就是 slot0 页（= 生产 ``--instance slot-0`` 路径），
   与子宠页同口径标注；只有 legacy 拓扑不加（每宠独立窗口，键确实只作用于自己）。
+  （原 T2「直播捕获兼容」随该功能整体退役删除。）
 
 纪律：offscreen；同步直调，不 sleep；不 mock 产品对象。
 """
@@ -48,15 +42,14 @@ WINDOW_SCOPE_IDS = (
 )
 
 SCOPE_NOTE = "（对所有桌宠生效）"
-LEGACY_STREAM_CAPTURE_HINT = "让 OBS 等工具能够枚举并捕获桌宠窗口；OBS 捕获方式请选 Windows 10（1903 及以上），BitBlt 会是黑屏。"
 
 
 def _dialog(tmp_path, monkeypatch, *, topology: str = "overlay", instance_id: str = "",
             standalone: bool = False):
-    """按拓扑/身份构建设置页（照 test_stream_capture_copy 的既有构造方式）。
+    """按拓扑/身份构建设置页。
 
-    平台固定 win32：T3 的 ``cursor_hidden_passthrough`` / ``auto_hide_fullscreen``
-    与 T2 的 ``stream_capture`` 都只在 Windows 建控件。
+    平台固定 win32：T2 的 ``cursor_hidden_passthrough`` / ``auto_hide_fullscreen``
+    只在 Windows 建控件。
     """
     import pet.modern_settings_dialog as settings_mod
     from pet.config import Config
@@ -124,55 +117,6 @@ def test_idle_low_fps_copy_keeps_legacy_frame_reduction(tmp_path, monkeypatch):
         _close(dialog)
     assert "半帧率" in hint
     assert "停止后台动画预热" in hint
-
-
-# --------------------------------------------------------------------------
-# T2 直播捕获兼容
-# --------------------------------------------------------------------------
-@pytest.mark.skip(reason='移植后遗留失败：移植后已不适用')
-def test_stream_capture_enabled_with_restart_level_copy_under_overlay(overlay_dialog):
-    """overlay：可点 + T4 口径（重启后生效、多宠先收拢为主宠物、影响所有桌宠）。"""
-    hint = _hint(overlay_dialog, "stream_capture")
-    assert overlay_dialog.stream_capture_check.isEnabled() is True
-    assert hint == (LEGACY_STREAM_CAPTURE_HINT
-                    + "重启后生效；重启时多只桌宠会先收拢为主宠物。")
-    assert "暂不支持" not in hint
-    # 作用域声明仍在行内，只是从说明末尾挪成独立标注（见 SettingRow.set_scope_note）。
-    assert _scope_note(overlay_dialog, "stream_capture") == "（影响所有桌宠）"
-
-
-@pytest.mark.skip(reason='移植后遗留失败：移植后已不适用')
-def test_stream_capture_toggle_clickable_in_both_topologies(tmp_path, monkeypatch):
-    """两个拓扑下点击都送达（T4 Phase A 撤销置灰；legacy 对照组同时证明非空转）。"""
-    for name in ("overlay", "legacy"):
-        (tmp_path / name).mkdir()
-    overlay = _dialog(tmp_path / "overlay", monkeypatch, topology="overlay")
-    legacy = _dialog(tmp_path / "legacy", monkeypatch, topology="legacy")
-    try:
-        overlay.show()
-        legacy.show()
-        app.processEvents()
-        QTest.mouseClick(overlay.stream_capture_check, Qt.MouseButton.LeftButton)
-        QTest.mouseClick(legacy.stream_capture_check, Qt.MouseButton.LeftButton)
-        app.processEvents()
-        assert overlay.stream_capture_check.isChecked() is True
-        assert legacy.stream_capture_check.isChecked() is True
-    finally:
-        _close(overlay)
-        _close(legacy)
-
-
-@pytest.mark.skip(reason='移植后遗留失败：移植后已不适用')
-def test_stream_capture_unchanged_under_legacy(tmp_path, monkeypatch):
-    """legacy：PetWindow 运行期可切窗旗标 → 控件可用、文案逐字不变。"""
-    dialog = _dialog(tmp_path, monkeypatch, topology="legacy")
-    try:
-        hint = _hint(dialog, "stream_capture")
-        enabled = dialog.stream_capture_check.isEnabled()
-    finally:
-        _close(dialog)
-    assert enabled is True
-    assert hint == LEGACY_STREAM_CAPTURE_HINT
 
 
 # --------------------------------------------------------------------------

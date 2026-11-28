@@ -338,7 +338,7 @@ def test_missing_user_layout_resolves_versioned_default():
         "check_update",
         "network_info",
         "github_project",
-        "quark_download",
+        "baidu_download",
         "author_info",
         "agent_link",
         "proactive_screen",
@@ -603,7 +603,7 @@ def test_default_layout_populates_real_qmenu_hierarchy(monkeypatch):
         "GitHub 项目页",
     ]
     if sys.platform == "win32":
-        expected_tools.append("夸克网盘下载")
+        expected_tools.append("百度网盘下载")
     expected_tools.append("作者信息")
     assert [action.text() for action in tools.actions() if not action.isSeparator()] == expected_tools
     # 音乐子菜单已随 music 子系统裁剪从默认布局移除（整组是空壳，点下去无效果），

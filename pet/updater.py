@@ -36,7 +36,8 @@ APP_VERSION = __version__
 REPO = 'todaywish945-ux/wanzhou'
 RELEASE_API = f'https://api.github.com/repos/{REPO}/releases/latest'
 REPO_URL = f'https://github.com/{REPO}'
-QUARK_PAN_URL = 'https://pan.quark.cn/s/68fc681ae486'
+# 网盘直链（菜单「百度网盘下载」入口用）：pwd 参数直接带上，网页端会自动填提取码。
+BAIDU_PAN_URL = 'https://pan.baidu.com/s/1quQ6Z6FfUz9JX0MN-dVr0w?pwd=hdt6'
 _UPDATE_JSON_URLS = (
     f'https://cdn.jsdelivr.net/gh/{REPO}@main/update.json',
     f'https://fastly.jsdelivr.net/gh/{REPO}@main/update.json',

@@ -40,7 +40,6 @@ EXPECTED_IDS = {
     "dynamic_island",
     "quick_launch",
     "system_tools",
-    "stream_capture",
     "cross_screen",
 }
 
@@ -139,7 +138,7 @@ class TestInventory:
             1: {"weather", "divination", "zzz_launcher", "todo", "festival"},
             2: {"voice", "music"},
             3: {"chat", "file_interpret", "vision", "proactive", "dynamic_island"},
-            4: {"quick_launch", "system_tools", "stream_capture", "cross_screen"},
+            4: {"quick_launch", "system_tools", "cross_screen"},
         }
         for batch, ids in declared.items():
             assert {fid for fid, spec in FEATURES.items() if spec.batch == batch} == ids
@@ -198,7 +197,7 @@ class TestQuerySurface:
         }
         assert features.RETIRED_FEATURES == {
             "todo", "festival", "music", "proactive",
-            "stream_capture", "cross_screen",
+            "cross_screen",
         }
 
 

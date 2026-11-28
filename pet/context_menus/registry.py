@@ -22,8 +22,8 @@ from .fun_entry import add_wanzhou_entry
 from .icons import custom_file_menu_icon, vector_menu_icon
 from .quick_launch import add_quick_launch_menu, configured_quick_apps
 from .shared import (
+    BAIDU_PAN_URL,
     NETWORK_INFO_DISABLED_REASON,
-    QUARK_PAN_URL,
     REPO_URL,
     add_action,
     add_autostart,
@@ -59,8 +59,8 @@ ACTION_LABELS = {
     "zzz_launcher": "启动绝区零",
     "memory_trim": "回收内存",
     "check_update": "检查更新", "github_project": "GitHub 项目页",
+    "baidu_download": "百度网盘下载",
     "author_info": "作者信息",
-    "quark_download": "夸克网盘下载",
     "reminders": "提醒事项",
     "voice_chime_settings": "设置报时",
     "quiet_mode": "免打扰",
@@ -87,7 +87,7 @@ ACTION_ICONS = {
     "zzz_launcher": "play",
     "memory_trim": "clear",
     "check_update": "update", "github_project": "web",
-    "quark_download": "download", "author_info": "pet",
+    "baidu_download": "download", "author_info": "pet",
     "reminders": "todo",
     "quiet_mode": "pause",
     "weather": "weather", "weather_cities": "weather",
@@ -247,12 +247,13 @@ def _build_author_info(menu, pet):
     )
 
 
-def _build_quark(menu, _pet):
+def _build_baidu_pan(menu, _pet):
+    """百度网盘直链：URL 已带 pwd 参数，网页端自动填提取码，无需另开说明。"""
     return add_action(
         menu,
-        "夸克网盘下载",
+        "百度网盘下载",
         "download",
-        lambda: QDesktopServices.openUrl(QUrl(QUARK_PAN_URL)),
+        lambda: QDesktopServices.openUrl(QUrl(BAIDU_PAN_URL)),
         close_on_trigger=True,
     )
 
@@ -306,7 +307,7 @@ class MenuActionRegistry:
             "check_update": MenuActionSpec(_build_check_update, _callback_available("on_check_update")),
             "github_project": MenuActionSpec(_build_github),
             "author_info": MenuActionSpec(_build_author_info),
-            "quark_download": MenuActionSpec(_build_quark, lambda _pet: sys.platform == "win32"),
+            "baidu_download": MenuActionSpec(_build_baidu_pan, lambda _pet: sys.platform == "win32"),
             # 免打扰：进程级状态，任何宿主（PetWindow / SpriteMenuFacade）都可用，
             # 不做能力判定——菜单里永远给得出入口，用户不必先找开关。
             "quiet_mode": MenuActionSpec(add_quiet_mode_menu),

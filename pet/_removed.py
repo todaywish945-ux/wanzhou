@@ -87,11 +87,6 @@ def set_first_frame_budget(*args: Any, **kwargs: Any) -> None:
     pass
 
 
-def effective_stream_capture_mode(value: Any) -> bool:
-    """直播捕获兼容模式（保留功能）：overlay 拓扑归并层裁剪后直接采信配置值。"""
-    return bool(value)
-
-
 def effective_proactive_config(raw: Any = None) -> dict:
     """主动识屏已裁剪：返回全关配置（白名单为空 = 永不触发）。
 

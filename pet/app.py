@@ -805,8 +805,6 @@ class PetInstance:
             self.quick_chat.pet_window = self.win
             self.quick_chat.settings = self.config.chat_settings()
             self.quick_chat.refresh_session()
-        if hasattr(self.win, "set_quick_chat_capture_widget"):
-            self.win.set_quick_chat_capture_widget(self.quick_chat)
         self.quick_chat.show_for_pet(self.win)
 
     def open_legacy_chat(self) -> None:
@@ -2550,13 +2548,9 @@ class AppShell:
             self._on_about_to_quit_connected = True
         character_id = str(self.config.get('character', catalog.DEFAULT_CHARACTER))
         logging.info('当前形象: %s', character_id)
-        # 拓扑分流（T5/4.1a + T4 Phase A）：唯一读取点是
-        # overlay_shell.is_overlay_topology（显式 PET_RENDER_TOPOLOGY 优先，其次
-        # 主配置 stream_capture_mode，启动时快照定死）。overlay → 单合成窗产品壳
-        # 接管渲染，不建 PetWindow；**捕获模式（stream_capture_mode=true）→ 这里
-        # 走 legacy 单窗 PetWindow 路径**（OBS 只能枚举真窗口），OverlayShell
-        # 根本不构造 ⇒ 活跃宠清单里的多只桌宠不会自动复活（T4「重启时收拢为主
-        # 宠物」），但清单本身不删（关掉捕获模式重启即回来）。
+        # 拓扑分流（T5/4.1a）：唯一读取点是 overlay_shell.is_overlay_topology
+        # （显式 PET_RENDER_TOPOLOGY 优先，启动时快照定死）。overlay → 单合成窗
+        # 产品壳接管渲染，不建 PetWindow；legacy → 单窗 PetWindow 路径。
         from ._removed import is_overlay_topology
         overlay_topology = is_overlay_topology()
         # 拓扑落一行日志：捕获模式"勾了但没重启"与"重启后确实切了"在用户侧

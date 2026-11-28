@@ -113,7 +113,7 @@ class FeatureSpec:
 # 它们的菜单动作已从注册表彻底删除（死功能无入口），但墓碑本身保留作
 # is_active 安全网（防止清单外 id 恒 True 复活空壳链路）。
 MENU_LESS_FEATURES = frozenset({
-    "file_interpret", "stream_capture", "cross_screen",
+    "file_interpret", "cross_screen",
     "todo", "festival", "music", "proactive",
 })
 
@@ -528,26 +528,6 @@ FEATURES: dict[str, FeatureSpec] = {
         batch=BATCH_TOOLS,
         entry_names=("「快捷启动」子菜单",),
     ),
-    # 直播捕获 stream_capture —— 重启级渲染拓扑开关（legacy 单窗供 OBS 捕获）。
-    #   不是服务，关闭无后台成本；模块化藏的是设置行与切换入口（设置页 clutter 治理）。
-    #   现有捕获模式用户经迁移基线继承本模块，行为不变；停用后拓扑判定按未开启处理。
-    "stream_capture": FeatureSpec(
-        id="stream_capture",
-        name="直播捕获",
-        desc="让 OBS 等直播软件能单独捕获桌宠窗口（兼容模式，重启后生效）。",
-        category=CATEGORY_SYSTEM,
-        search_aliases=("直播", "捕获", "OBS", "推流", "capture", "stream"),
-        requires=(),
-        optional_deps=(),
-        menu_action_ids=(),
-        config_keys=("stream_capture_mode",),
-        needs_network=False,
-        needs_paid=False,
-        needs_external_process=False,
-        batch=BATCH_TOOLS,
-        entry_names=("常规页「直播捕获（高级）」与捕获兼容模式",),
-        retired=True,
-    ),
     # 多屏跨屏 cross_screen —— 多显示器活动区开关（默认关、重启级、进程快照）。
     #   同样无后台成本；藏的是设置行。既有跨屏用户经迁移基线继承，行为不变。
     "cross_screen": FeatureSpec(
@@ -614,7 +594,7 @@ MIGRATION_BASELINE: tuple[str, ...] = (
     "vision",
     "dynamic_island",
     "quick_launch",
-    # 直播捕获/多屏跨屏已从设置移除：前者实测无实际收益，后者唯一消费者是
+    # 多屏跨屏已从设置页移除（2026-11-23）：实测使用率低，且唯一消费者是
     # 已裁剪的 overlay 拓扑（单窗架构下开关一直置灰）。老配置里的键仍被
     # 底层读取、行为不变，但不再有可见入口。
     "system_tools",

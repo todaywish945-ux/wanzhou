@@ -44,7 +44,7 @@
         {"type": "action", "id": "check_update", "visible": true},
         {"type": "action", "id": "network_info", "visible": true},
         {"type": "action", "id": "github_project", "visible": true},
-        {"type": "action", "id": "quark_download", "visible": true},
+        {"type": "action", "id": "baidu_download", "visible": true},
         {"type": "action", "id": "author_info", "visible": true}
       ]
     },

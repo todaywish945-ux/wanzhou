@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """骗子酒馆牌局联动（挽昼桌宠移植版，协议沿用旧版单文件 pet.py）。
 
-轮询项目根目录的 ``联动事件.json``：``ts`` 大于上次时间戳即有一批新事件。
+轮询 ``%APPDATA%/wanzhou-pet/联动事件.json``（源码开发期兼容仓库根旧位置）：``ts`` 大于上次时间戳即有一批新事件。
 事件字段（只处理 ``char`` 等于本窗角色的第一条）：
 
 - ``emotion``：表情名（= 素材文件名，如「生气」）→ :meth:`switch_clip` 播放，
@@ -28,6 +28,23 @@ from . import window_placement
 log = logging.getLogger("pet.game_link")
 
 _EVENT_FILENAME = "联动事件.json"
+#: 源码开发期的旧位置（仓库根）：打包形态不存在，仅作兼容回退（测试可打桩）。
+_LEGACY_EVENT_FILE = Path(__file__).resolve().parent.parent / _EVENT_FILENAME
+
+
+def preferred_event_file() -> Path:
+    """联动事件文件路径（读侧唯一入口，骗子酒馆写侧与此同源）。
+
+    首选 ``%APPDATA%/wanzhou-pet/``（打包形态两边都写得到）；源码开发期旧
+    位置（仓库根）有文件就回退兼容。两处都没有时仍返回 APPDATA 候选——
+    调用方照常 open 失败静默，语义与“没有事件”一致。
+    """
+    appdata = os.environ.get("APPDATA")
+    base = Path(appdata) if appdata else Path.home()
+    candidate = base / "wanzhou-pet" / _EVENT_FILENAME
+    if candidate.is_file():
+        return candidate
+    return _LEGACY_EVENT_FILE if _LEGACY_EVENT_FILE.is_file() else candidate
 
 
 class GameLink(QObject):
@@ -43,15 +60,7 @@ class GameLink(QObject):
         self._timer.start(1000)
 
     def _event_file(self) -> Path:
-        # 联动事件统一在 %APPDATA%/wanzhou-pet/（与骗子酒馆写侧同源，
-        # 打包形态下仓库根不可靠）。源码开发时回退仓库根旧位置。
-        appdata = os.environ.get("APPDATA")
-        base = Path(appdata) if appdata else Path.home()
-        candidate = base / "wanzhou-pet" / _EVENT_FILENAME
-        if candidate.is_file():
-            return candidate
-        legacy = Path(__file__).resolve().parent.parent / _EVENT_FILENAME
-        return legacy if legacy.is_file() else candidate
+        return preferred_event_file()
 
     def _poll(self) -> None:
         try:

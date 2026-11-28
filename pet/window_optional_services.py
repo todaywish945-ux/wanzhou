@@ -217,9 +217,27 @@ class WindowFeatureGateMixin:
         self._golden_spin.start()
 
     def set_edge_probe_enabled(self, on: bool) -> None:
-        """右键菜单/设置开关：写配置并同步控制器。"""
+        """右键菜单/设置开关：写配置并同步控制器。
+
+        edge_probe_enabled 属 A 类全局键（app._SHARED_GLOBAL_KEYS），真相源是主
+        配置 config.json；只写实例配置的话，下一次 watcher 桥接会用主配置里的
+        旧值把开关拉回去（表现为"关了之后它自己又打开"）。slot 宠把切换同步
+        写进主配置，让最新一次用户意图成为全局真相；主宠（instance_id 为空）
+        本来就写主配置，天然无此问题。
+        """
         self._install_effect_services()
         on = bool(on)
+        if self.cfg.instance_id:
+            try:
+                from .config import Config
+
+                master = Config(base=self.cfg.dir.parent, instance_id="")
+                if bool(master.get("edge_probe_enabled", False)) != on:
+                    master.set("edge_probe_enabled", on)
+                    master.save()
+            except Exception:
+                logging.getLogger(__name__).debug(
+                    "边缘探头全局开关写盘失败", exc_info=True)
         self.cfg.set("edge_probe_enabled", on)
         self.cfg.save()
         self._edge_probe.set_enabled(on)

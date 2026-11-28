@@ -44,15 +44,18 @@ API 返回的版本若主版本号大于 1（例如遗留的 v4.4.x）请忽略�
 
 【第五步 · 手动更新（仅当一键更新不可用）】
 1. 下载清单里的 download_url 到我的下载文件夹。**清单里的 download_url 已经是 gh-proxy 镜像地址**（`https://gh-proxy.com/https://github.com/...`），国内能直连，直接用即可，**不要再往前面拼镜像前缀**（会双层前缀失败）。若这个镜像也失败，把地址里的 `gh-proxy.com` 换成 `ghproxy.net` 再试；还不行才试 assets 里的原始 GitHub 直链（国内基本不通，只作最后退路）。
-   不要让我自己去点浏览器地址栏里 `release-assets.githubusercontent.com` 的 GitHub 直链——国内会报 `Request.Invalid error`。必须真的发出下载请求，不许说「找不到包」。
+   不要让我自己去点浏览器地址栏里 `release-assets.githubusercontent.com` 的 GitHub 直链——国内会报 `Request.Invalid error`。必须真的发出下载请求，不许说「找不到包」。下载完成后，**把 zip 的完整保存路径原样告诉我**。
 2. 校验：Get-Item 看 Length 是否等于清单的 size，Get-FileHash -Algorithm SHA256 是否等于清单的 sha256。不一致就停下，告诉我，不要解压。这一步静默做，不用把哈希念给我。
 3. 关掉正在跑的桌宠（结束所有 wanzhou-pet.exe 进程）。
 4. 解压 zip 到程序目录（例如 %USERPROFILE%\wanzhou-pet\），让 wanzhou-pet.exe 和 _internal\ 在同一层。旧的程序文件会被覆盖——这正是更新。
    千万注意：只动程序目录，绝对不要删或改 %APPDATA%\wanzhou-pet\ 里的任何东西（配置、Key、聊天记录都在那，删了就丢了）。
 5. 双击 wanzhou-pet.exe 重新启动，应同时出现三只桌宠。
 
-【第六步 · 验收】
-用 Get-CimInstance Win32_Process -Filter "Name='wanzhou-pet.exe'" 确认有三条带 --slot 1/2/3 的进程；再确认程序版本已变成清单里的 version。然后请我人眼看一下：三只桌宠在不在、右键「骗子酒馆」能不能打开牌局。把结果一句话报给我。
+【第六步 · 确认桌面快捷方式】
+检查桌面有没有「挽昼桌宠」快捷方式，且目标仍指向更新后的程序目录里 `wanzhou-pet.exe`。有且指向正确就什么都不用做；没有、或指向旧路径（更新换了目录），就重建一个：目标为新的 `wanzhou-pet.exe` 完整路径、起始位置为 exe 所在目录、图标用 exe 自带的，文件名 `挽昼桌宠.lnk`，存到 `[Environment]::GetFolderPath('Desktop')` 返回的桌面。建完用 `Test-Path` 确认存在，把快捷方式路径报给我。
+
+【第七步 · 验收】
+用 Get-CimInstance Win32_Process -Filter "Name='wanzhou-pet.exe'" 确认有三条带 --slot 1/2/3 的进程；再确认程序版本已变成清单里的 version。然后请我人眼看一下：三只桌宠在不在、右键「骗子酒馆」能不能打开牌局、桌面上能不能双击快捷方式重新拉起三只。把结果一句话报给我。
 
 【全局规则】
 - API Key 在任何输出里都打码或写 <已设置>，绝不读取、复述、写进文件。

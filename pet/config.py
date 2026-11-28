@@ -1176,7 +1176,6 @@ class Config:
             "mem_skip_foreground": True,  # 跳过当前前台进程（不抖用户正在用的窗口）
             "mem_min_size_mb": 50.0,  # 工作集小于该值(MB)的进程不折腾
             "autostart_wanted": False,  # 用户曾开启过开机自启（用于启动自检：被安全软件清理时提醒）
-            "stream_capture_mode": False,  # 直播捕获兼容模式（Windows：Tool 窗口直播姬/OBS 枚举不到）
             "chat_background": "",  # 经典小窗背景：空=纯色；builtin:* = 内置主题；否则为图片路径
             "modern_chat_background": "",  # 现代聊天窗背景：空=纯色；否则为自定义图片路径
             "chat_background_opacity": 100,
@@ -1501,7 +1500,6 @@ class Config:
             "self_talk_speak_enabled",
             "self_talk_voice_precache_enabled",
             "autostart_wanted",
-            "stream_capture_mode",
             "allow_cross_screen",
             "music_sing_enabled",
             "music_sing_grace_seconds",

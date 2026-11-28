@@ -148,7 +148,6 @@ RELOAD_WHITELIST_SNAPSHOT = frozenset(
         "shift_drag",
         "show_dock_icon",
         "slingshot_enabled",
-        "stream_capture_mode",
         "system_notifications_enabled",
         "throw_strength",
         "todo_reminder_enabled",

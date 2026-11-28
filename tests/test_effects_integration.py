@@ -262,3 +262,67 @@ def test_real_window_move_blocked_during_edge_probe(tmp_path, monkeypatch):
     finally:
         win.close()
         app.processEvents()
+
+
+class _ProbeRecorder:
+    """只记录 set_enabled 调用的探头桩。"""
+
+    def __init__(self):
+        self.calls = []
+
+    def set_enabled(self, on):
+        self.calls.append(bool(on))
+
+
+class _ToggleHost(WindowFeatureGateMixin):
+    """只装配 set_edge_probe_enabled 所需最小面的宿主。"""
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self._edge_probe = _ProbeRecorder()
+
+    def _install_effect_services(self):
+        pass
+
+
+def test_edge_probe_toggle_syncs_master_config(tmp_path):
+    """回归：slot 宠切换边缘探头必须同步写主配置。
+
+    edge_probe_enabled 属 A 类全局键（app._SHARED_GLOBAL_KEYS），桥接方向是
+    主配置→实例配置。以前右键菜单只写实例配置，watcher 下一次桥接（含本进程
+    自己落盘触发的去抖应用链）会用主配置里的旧 True 把开关拉回去——表现为
+    "关了之后它自己又打开"。现在切换同步写主配置，最新用户意图即全局真相。
+    """
+    master = Config(tmp_path, instance_id="")
+    master.set("edge_probe_enabled", True)  # 模拟设置页（写主配置）开过一次
+    master.save()
+    slot = Config(tmp_path, instance_id="slot-1")
+    host = _ToggleHost(slot)
+
+    host.set_edge_probe_enabled(False)
+    master.reload()
+    assert master.get("edge_probe_enabled") is False
+    assert slot.get("edge_probe_enabled") is False
+    assert host._edge_probe.calls == [False]
+
+    host.set_edge_probe_enabled(True)
+    master.reload()
+    assert master.get("edge_probe_enabled") is True
+    assert slot.get("edge_probe_enabled") is True
+    assert host._edge_probe.calls == [False, True]
+
+
+def test_edge_probe_toggle_master_pet_writes_master(tmp_path):
+    """主宠（instance_id 空）本来就写主配置：开关即主配置当前值。"""
+    cfg = Config(tmp_path, instance_id="")
+    host = _ToggleHost(cfg)
+
+    host.set_edge_probe_enabled(True)
+    cfg.reload()
+    assert cfg.get("edge_probe_enabled") is True
+    assert host._edge_probe.calls == [True]
+
+    host.set_edge_probe_enabled(False)
+    cfg.reload()
+    assert cfg.get("edge_probe_enabled") is False
+    assert host._edge_probe.calls == [True, False]
