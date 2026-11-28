@@ -1063,6 +1063,24 @@ class PetWindow(QWidget, WindowFeatureGateMixin):
         """公开转发：以窗口中心相对屏幕可用区的比例持久化位置（等价 _save_position）。"""
         self._save_position()
 
+    def position_is_transient(self) -> bool:
+        """退出保存守卫：当前位置是否处于"临时状态"不得写入记忆。
+
+        自动走动中（_move_plan 在跑）、抛掷/拖拽物理中（_physics_mode 非空）、
+        骗子酒馆入座会话中（game_link 尚未散场）——这三类位置都是临时态，
+        与 _request_quit / closeEvent 的「不保存随机终点」守则同一口径。
+        之前 app 层退出收口无条件 save_position，绕过了该守则：退出瞬间宠物
+        正在散步时，散步半路的位置被写成家位置（用户实测「重启后位置变了」）。
+        """
+        if self._move_plan is not None:
+            return True
+        if self._physics_mode is not None:
+            return True
+        game = getattr(self, "_game_link", None)
+        if game is not None and getattr(game, "_restore_state", None) is not None:
+            return True
+        return False
+
     def _go_default_corner(self) -> None:
         # 用户明确要求回右下角 = 手动位置决策，撤销"等副屏上线自动恢复"
         _disarm = getattr(self, '_disarm_screen_restore_retry', None)

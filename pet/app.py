@@ -2988,12 +2988,17 @@ class AppShell:
         # 否则「退出时登记表为空 → worker 随后 spawn 登记」会留下永远无人收的进程。
         self._quitting = True
         self._flush_chat_memory_hits()
-        # 窗级收口：逐窗保存位置、停本窗预热与 Agent、提交本窗会话
+        # 窗级收口：逐窗保存位置、停本窗预热与 Agent、提交本窗会话。
+        # 位置保存带守卫：走动/抛掷/牌局会话中不落盘，保持用户锚点
+        # （对齐 window 层「不保存随机终点」守则；否则重启后位置漂移）。
         for inst in self._instances:
             win = inst.win
             if win is not None:
                 try:
-                    win.save_position()
+                    if win.position_is_transient():
+                        logging.info("退出时窗口处于走动/抛掷/牌局会话，位置记忆保持用户锚点")
+                    else:
+                        win.save_position()
                 except Exception:
                     logging.exception("退出时保存位置失败")
                 try:
@@ -4390,7 +4395,8 @@ class AppShell:
         if instance is self.instance:
             if win is None:
                 return
-            win.save_position()
+            if not win.position_is_transient():
+                win.save_position()
             win.agent_link_manager = None
             win.proactive_watcher = None
             win.close()
@@ -4403,7 +4409,10 @@ class AppShell:
         heavy_jobs: list[tuple[str, object]] = []  # defer 模式的重回收任务
         if win is not None:
             try:
-                win.save_position()
+                if not win.position_is_transient():
+                    win.save_position()
+                else:
+                    logging.info("退出这只：窗口处于走动/抛掷/牌局会话，位置记忆保持用户锚点")
             except Exception:
                 logging.exception("退出这只：保存位置失败")
             try:
